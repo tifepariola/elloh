@@ -1,5 +1,5 @@
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { ChevronLeft, Send, SkipBackIcon, StepBackIcon, TagIcon } from "lucide-react"
+import { ChevronLeft, Send, TagIcon } from "lucide-react"
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 

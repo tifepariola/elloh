@@ -1,6 +1,5 @@
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useState } from "react"
-import ChatWindow from "./ChatWindow"
 
 type Message = {
   id: number;
@@ -253,16 +252,12 @@ const conversations: Conversation[] = [
   }
 ]
 
-export default function ConversationList({ onSelect,className = "" }: ConversationListProps) {
+export default function ConversationList({ onSelect, className = "" }: ConversationListProps) {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
 
   const handleSelectConversation = (conv: Conversation) => {
     setSelectedConversation(conv)
     onSelect(conv);
-  }
-
-  const handleBack = () => {
-    setSelectedConversation(null)
   }
 
   return (

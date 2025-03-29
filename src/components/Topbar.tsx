@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { BeakerIcon, Bell, ChartNoAxesColumn, ContactIcon, HelpCircle, InboxIcon, Settings } from "lucide-react"
+import { Bell, ChartNoAxesColumn, ContactIcon, InboxIcon } from "lucide-react"
 import logo from "../assets/logo-full.svg"
 import {
     DropdownMenu,
