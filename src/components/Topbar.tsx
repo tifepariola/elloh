@@ -12,6 +12,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useNavigate } from "react-router-dom"
+import { Button } from "@/components/ui/button"
 
 export default function Topbar() {
     const navigate = useNavigate()
@@ -19,22 +20,24 @@ export default function Topbar() {
         <div className="bg-mine-shaft-900 text-white px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-4">
                 <img src={logo} className="h-6" />
-                <button className="bg-mine-shaft-500/40 p-2">
+                <Button className="bg-mine-shaft-500/40">
                     <InboxIcon className="size-5" />
-                </button>
-                <button className="p-2">
+                </Button>
+                <Button variant={"ghost"}>
                     <ContactIcon className="size-5" />
-                </button>
-                <button className="p-2">
+                </Button>
+                <Button variant={"ghost"}>
                     <ChartNoAxesColumn className="size-5" />
-                </button>
+                </Button>
                 <Input
                     placeholder="Search..."
                     className="bg-mine-shaft-600 border-none text-sm hidden md:block w-[250px] placeholder:text-gray-400"
                 />
             </div>
             <div className="flex items-center gap-4">
-                <Bell className="size-5 hidden sm:block" />
+                <Button variant={"ghost"}>
+                    <Bell className="size-5 hidden sm:block" />
+                </Button>
                 <DropdownMenu>
                     <DropdownMenuTrigger>
                         <Avatar>

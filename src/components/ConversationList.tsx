@@ -2,6 +2,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { MessageCircleMore } from "lucide-react";
 import { useState } from "react"
 import { NewChatModal } from "./NewChatModal";
+import { Button } from "@/components/ui/button";
 
 type Message = {
   id: number;
@@ -267,10 +268,10 @@ export default function ConversationList({ onSelect, className = "" }: Conversat
     <div className={`w-full md:w-[300px] bg-white ${className} border-r flex flex-col ${selectedConversation ? 'hidden' : 'block'}`}>
       <header className="p-4 flex justify-between">
         <h2 className="text-md font-normal">Conversations</h2>
-        <button onClick={() => setIsModalOpen(true)} className="hover:bg-accent p-1.5 cursor-pointer">
+        <Button variant={"ghost"} onClick={() => setIsModalOpen(true)} className="">
           <MessageCircleMore className="size-5" />
           <label className="sr-only">New Chat</label>
-        </button>
+        </Button>
       </header>
       <div className="divide-y-1 overflow-y-auto">
         {conversations.map((conv, idx) => (

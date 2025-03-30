@@ -38,11 +38,11 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
     };
     return (
         <div className={`flex-1 flex-col bg-white ${className}`}>
-            <div className="flex gap-2 items-center border-b p-4">
+            <div className="flex gap-2 items-center border-b py-4">
                 {onBack && (
-                    <button onClick={onBack} className="sm:hidden">
+                    <Button variant={"ghost"} onClick={onBack} className="sm:hidden">
                         <ChevronLeft className="size-7" />
-                    </button>
+                    </Button>
                 )}
                 <div className="flex flex-1 items-center gap-3">
                     <Avatar>
@@ -53,9 +53,9 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
                         <p className="font-semibold">Chat with {conversation.sender}</p>
                     </div>
                 </div>
-                <button>
+                <Button variant={"ghost"}>
                     <TagIcon className="size-5" />
-                </button>
+                </Button>
             </div>
 
             {/* Messages */}
@@ -85,7 +85,7 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
                     className="flex-1 rounded-md border border-input bg-background px-4 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
                 <Button onClick={handleSend} className="">
-                <Send className="size-5" />
+                    <Send className="size-5" />
 
                 </Button>
             </div>
