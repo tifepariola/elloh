@@ -1,5 +1,7 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { MessageCircleMore } from "lucide-react";
 import { useState } from "react"
+import { NewChatModal } from "./NewChatModal";
 
 type Message = {
   id: number;
@@ -254,6 +256,7 @@ const conversations: Conversation[] = [
 
 export default function ConversationList({ onSelect, className = "" }: ConversationListProps) {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleSelectConversation = (conv: Conversation) => {
     setSelectedConversation(conv)
@@ -261,9 +264,15 @@ export default function ConversationList({ onSelect, className = "" }: Conversat
   }
 
   return (
-    <div className={`w-full md:w-[300px] bg-white ${className} border-r py-4 overflow-y-auto ${selectedConversation ? 'hidden' : 'block'}`}>
-      <h2 className="text-md font-normal mb-4 px-4">Conversations</h2>
-      <div className="divide-y-1">
+    <div className={`w-full md:w-[300px] bg-white ${className} border-r flex flex-col ${selectedConversation ? 'hidden' : 'block'}`}>
+      <header className="p-4 flex justify-between">
+        <h2 className="text-md font-normal">Conversations</h2>
+        <button onClick={() => setIsModalOpen(true)} className="hover:bg-accent p-1.5 cursor-pointer">
+          <MessageCircleMore className="size-5" />
+          <label className="sr-only">New Chat</label>
+        </button>
+      </header>
+      <div className="divide-y-1 overflow-y-auto">
         {conversations.map((conv, idx) => (
           <div
             key={idx}
@@ -282,6 +291,8 @@ export default function ConversationList({ onSelect, className = "" }: Conversat
           </div>
         ))}
       </div>
+      <NewChatModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+
     </div>
     // {selectedConversation && (
     //   <ChatWindow
