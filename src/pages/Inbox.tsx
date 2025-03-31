@@ -3,20 +3,10 @@ import ConversationList from "@/components/ConversationList";
 import Topbar from "@/components/Topbar";
 import { useState } from "react";
 import SvgLogo from "@/components/SvgLogo";
-type Message = {
-  id: number;
-  text: string;
-  isCurrentUser: boolean;
-  sender: string;
-};
 
-type Conversation = {
-  sender: string;
-  messages: Message[];
-};
 
 export default function Inbox() {
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [selectedConversation, setSelectedConversation] = useState<Object | null>(null);
 
   return (
     <div className="h-dvh flex flex-col bg-mine-shaft-900">

@@ -1,268 +1,35 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { MessageCircleMore } from "lucide-react";
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { NewChatModal } from "./NewChatModal";
 import { Button } from "@/components/ui/button";
+import { listConversations } from "@/api";
 
-type Message = {
-  id: number;
-  text: string;
-  isCurrentUser: boolean;
-  sender: string;
-};
-
-type Conversation = {
-  sender: string;
-  messages: Message[];
-};
 type ConversationListProps = {
-  onSelect: (conv: Conversation) => void;
+  onSelect: (conv: Object) => void;
   className?: string;
 };
 
-const conversations: Conversation[] = [
-  {
-    sender: "Blessing Pariola",
-    messages: [
-      {
-        id: 1,
-        text: "Hi, I have a question about..",
-        isCurrentUser: false,
-        sender: "Blessing Pariola"
-      },
-      {
-        id: 2,
-        text: "Sure, how can I help?",
-        isCurrentUser: true,
-        sender: "Support"
-      },
-      {
-        id: 2,
-        text: "Sure, how can I help?",
-        isCurrentUser: true,
-        sender: "Support"
-      }
-    ]
-  },
-  {
-    sender: "Lolade Pariolass",
-    messages: [
-      {
-        id: 1,
-        text: "Hey, I love youssr product..",
-        isCurrentUser: false,
-        sender: "Lolade Pariola"
-      }
-    ]
-  },
-  {
-    sender: "Lolade Pariola",
-    messages: [
-      {
-        id: 1,
-        text: "Hey, I love your product..",
-        isCurrentUser: false,
-        sender: "Lolade Pariola"
-      }
-    ]
-  },
-  {
-    sender: "Lolade Pariola",
-    messages: [
-      {
-        id: 1,
-        text: "Hey, I love your product..",
-        isCurrentUser: false,
-        sender: "Lolade Pariola"
-      }
-    ]
-  },
-  {
-    sender: "Lolade Pariola",
-    messages: [
-      {
-        id: 1,
-        text: "Hey, I love your product..",
-        isCurrentUser: false,
-        sender: "Lolade Pariola"
-      }
-    ]
-  },
-  {
-    sender: "Lolade Pariola",
-    messages: [
-      {
-        id: 1,
-        text: "Hey, I love your product..",
-        isCurrentUser: false,
-        sender: "Lolade Pariola"
-      }
-    ]
-  },
-  {
-    sender: "Lolade Pariola",
-    messages: [
-      {
-        id: 1,
-        text: "Hey, I love your product..",
-        isCurrentUser: false,
-        sender: "Lolade Pariola"
-      }
-    ]
-  },
-  {
-    sender: "Lolade Pariola",
-    messages: [
-      {
-        id: 1,
-        text: "Hey, I love your product..",
-        isCurrentUser: false,
-        sender: "Lolade Pariola"
-      }
-    ]
-  },
-  {
-    sender: "Lolade Pariola",
-    messages: [
-      {
-        id: 1,
-        text: "Hey, I love your product..",
-        isCurrentUser: false,
-        sender: "Lolade Pariola"
-      }
-    ]
-  },
-  {
-    sender: "Lolade Pariola",
-    messages: [
-      {
-        id: 1,
-        text: "Hey, I love your product..",
-        isCurrentUser: false,
-        sender: "Lolade Pariola"
-      }
-    ]
-  },
-  {
-    sender: "Lolade Pariola",
-    messages: [
-      {
-        id: 1,
-        text: "Hey, I love your product..",
-        isCurrentUser: false,
-        sender: "Lolade Pariola"
-      }
-    ]
-  },
-  {
-    sender: "Lolade Pariola",
-    messages: [
-      {
-        id: 1,
-        text: "Hey, I love your product..",
-        isCurrentUser: false,
-        sender: "Lolade Pariola"
-      }
-    ]
-  },
-  {
-    sender: "Lolade Pariola",
-    messages: [
-      {
-        id: 1,
-        text: "Hey, I love your product..",
-        isCurrentUser: false,
-        sender: "Lolade Pariola"
-      }
-    ]
-  },
-  {
-    sender: "Lolade Pariola",
-    messages: [
-      {
-        id: 1,
-        text: "Hey, I love your product..",
-        isCurrentUser: false,
-        sender: "Lolade Pariola"
-      }
-    ]
-  },
-  {
-    sender: "Lolade Pariola",
-    messages: [
-      {
-        id: 1,
-        text: "Hey, I love your product..",
-        isCurrentUser: false,
-        sender: "Lolade Pariola"
-      }
-    ]
-  },
-  {
-    sender: "Lolade Pariola",
-    messages: [
-      {
-        id: 1,
-        text: "Hey, I love your product..",
-        isCurrentUser: false,
-        sender: "Lolade Pariola"
-      }
-    ]
-  },
-  {
-    sender: "Lolade Pariola",
-    messages: [
-      {
-        id: 1,
-        text: "Hey, I love your product..",
-        isCurrentUser: false,
-        sender: "Lolade Pariola"
-      }
-    ]
-  },
-  {
-    sender: "Lolade Pariola",
-    messages: [
-      {
-        id: 1,
-        text: "Hey, I love your product..",
-        isCurrentUser: false,
-        sender: "Lolade Pariola"
-      }
-    ]
-  },
-  {
-    sender: "Lolade Pariola",
-    messages: [
-      {
-        id: 1,
-        text: "Hey, I love your product..",
-        isCurrentUser: false,
-        sender: "Lolade Pariola"
-      }
-    ]
-  },
-  {
-    sender: "Lolade Pariola",
-    messages: [
-      {
-        id: 1,
-        text: "Hey, I love your product..",
-        isCurrentUser: false,
-        sender: "Lolade Pariola"
-      }
-    ]
-  }
-]
 
 export default function ConversationList({ onSelect, className = "" }: ConversationListProps) {
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
+  const [selectedConversation, setSelectedConversation] = useState<Object | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [conversations, setConversations] = useState([]);
 
-  const handleSelectConversation = (conv: Conversation) => {
+  const handleSelectConversation = (conv: Object) => {
     setSelectedConversation(conv)
     onSelect(conv);
   }
+
+
+  useEffect(() => {
+    const getConversations = async () => {
+      const data = await listConversations();
+      console.log(data.conversations)
+      setConversations(data.conversations);
+    };
+    getConversations();
+  }, []);
 
   return (
     <div className={`w-full md:w-[300px] bg-white ${className} border-r flex flex-col ${selectedConversation ? 'hidden' : 'block'}`}>
@@ -281,13 +48,13 @@ export default function ConversationList({ onSelect, className = "" }: Conversat
             onClick={() => handleSelectConversation(conv)}
           >
             <Avatar className="w-10 h-10">
-              <AvatarFallback>{conv.sender[0]}</AvatarFallback>
+              <AvatarFallback>{conv.contactID[0]}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
               <div className="flex justify-between text-sm font-medium">
-                <span>{conv.sender}</span>
+                <span>{conv.contactID}</span>
               </div>
-              <div className="text-sm text-muted-foreground">{conv.messages[conv.messages.length - 1]?.text}</div>
+              {/* <div className="text-sm text-muted-foreground">{conv.messages[conv.messages.length - 1]?.text}</div> */}
             </div>
           </div>
         ))}

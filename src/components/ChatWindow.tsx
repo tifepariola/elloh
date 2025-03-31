@@ -2,6 +2,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { ChevronLeft, Send, TagIcon } from "lucide-react"
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
+import { listMessages, sendMessage } from "@/api";
 
 type ChatWindowProps = {
     onBack: () => void;
@@ -19,26 +20,28 @@ type ChatWindowProps = {
 
 export default function ChatWindow({ onBack, conversation, className = "" }: ChatWindowProps) {
     const [inputValue, setInputValue] = useState('');
-    const [messages, setMessages] = useState(conversation.messages);
+    const [messages, setMessages] = useState([]);
+
+    const handleSendMessage = async () => {
+        const data = await sendMessage(conversation.id, inputValue);
+        console.log(data)
+        setInputValue('')
+        // setMessages(data.messages);
+    };
 
     useEffect(() => {
-        setMessages(conversation.messages);
+        const getMessages = async () => {
+            const data = await listMessages(conversation.id);
+            console.log(data.messages)
+            setMessages(data.messages);
+        };
+        getMessages();
     }, [conversation]);
 
-    const handleSend = () => {
-        if (inputValue.trim()) {
-            setMessages([...messages, {
-                id: messages.length + 1,
-                text: inputValue,
-                isCurrentUser: true,
-                sender: "You"
-            }]);
-            setInputValue('');
-        }
-    };
+
     return (
         <div className={`flex-1 flex-col bg-white ${className}`}>
-            <div className="flex gap-2 items-center border-b py-4">
+            <div className="flex gap-2 items-center border-b py-4 px-2">
                 {onBack && (
                     <Button variant={"ghost"} onClick={onBack} className="sm:hidden">
                         <ChevronLeft className="size-7" />
@@ -50,7 +53,7 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
                         <AvatarFallback>BP</AvatarFallback>
                     </Avatar>
                     <div>
-                        <p className="font-semibold">Chat with {conversation.sender}</p>
+                        <p className="font-semibold">Chat with {conversation.contactID}</p>
                     </div>
                 </div>
                 <Button variant={"ghost"}>
@@ -63,13 +66,13 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
                 {messages.map((msg) => (
                     <div
                         key={msg.id}
-                        className={`flex flex-col ${msg.isCurrentUser ? "items-end" : "items-start"}`}
+                        className={`flex flex-col ${msg.direction === "outgoing" ? "items-end" : "items-start"}`}
                     >
                         <div
-                            className={`p-4 rounded-md max-w-md ${msg.isCurrentUser ? "bg-mine-shaft-200" : "bg-muted"
+                            className={`p-2 px-3 rounded-md max-w-md ${msg.direction === "outgoing" ? "bg-mine-shaft-200" : "bg-muted"
                                 }`}
                         >
-                            {msg.text}
+                            {msg.body.text.text}
                         </div>
                     </div>
                 ))}
@@ -84,9 +87,8 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
                     placeholder="Type your message..."
                     className="flex-1 rounded-md border border-input bg-background px-4 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
-                <Button onClick={handleSend} className="">
+                <Button onClick={handleSendMessage} className="">
                     <Send className="size-5" />
-
                 </Button>
             </div>
         </div>
