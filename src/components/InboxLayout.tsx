@@ -16,7 +16,7 @@ type Conversation = {
 };
 
 export default function InboxLayout() {
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | any>(null);
 
   return (
     <div className="h-dvh flex flex-col bg-mine-shaft-900">
