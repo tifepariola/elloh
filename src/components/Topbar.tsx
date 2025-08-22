@@ -13,9 +13,17 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/store/authContext"
 
 export default function Topbar() {
     const navigate = useNavigate()
+    const { user, logout } = useAuth()
+    
+    const handleLogout = () => {
+        logout();
+        navigate("/auth");
+    }
+    
     return (
         <div className="bg-mine-shaft-900 text-white px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -42,7 +50,9 @@ export default function Topbar() {
                     <DropdownMenuTrigger>
                         <Avatar>
                             <AvatarImage src="https://i.pravatar.cc/30" />
-                            <AvatarFallback>SC</AvatarFallback>
+                            <AvatarFallback>
+                                {user?.email?.substring(0, 2).toUpperCase() || 'U'}
+                            </AvatarFallback>
                         </Avatar>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-54">
@@ -51,7 +61,7 @@ export default function Topbar() {
                         <DropdownMenuItem>Profile</DropdownMenuItem>
                         <DropdownMenuItem>Help</DropdownMenuItem>
                         <DropdownMenuItem>Settings</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate("/auth")}>
+                        <DropdownMenuItem onClick={handleLogout}>
                             Log out
                             <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
                         </DropdownMenuItem>

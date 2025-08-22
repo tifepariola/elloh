@@ -1,39 +1,37 @@
 import api from "./axiosInstance";
+import { ConversationsResponse, Message } from "@/types";
 
+export const listConversations = async (): Promise<ConversationsResponse> => {
+    const response = await api.get("/conversations");
+    return response.data;
+};
 
-export const listConversations = async () => {
+import { EventsResponse } from "@/types";
+
+export const listEvents = async (conversationID: string): Promise<EventsResponse> => {
     try {
-        const response = await api.get("/conversations");
+        const response = await api.get("/conversations/" + conversationID + "/events");
         return response.data;
     } catch (error) {
-        console.error("Error fetching conversations:", error);
-        return [];
+        console.error("Error fetching events:", error);
+        return { events: [] };
     }
 };
 
-export const listMessages = async (conversationID) => {
-    try {
-        const response = await api.get("/conversations/" + conversationID + "/messages");
-        return response.data;
-    } catch (error) {
-        console.error("Error fetching conversations:", error);
-        return [];
-    }
+// Legacy function for backward compatibility
+export const listMessages = async (conversationID: string): Promise<EventsResponse> => {
+    return listEvents(conversationID);
 };
 
-export const sendMessage = async (conversationID, message) => {
-    try {
-        const response = await api.post("/conversations/" + conversationID + "/messages", {
-            "body": {
-                "type": "text",
-                "text": {
-                    "text": message
-                }
-            }
-        });
-        return response.data;
-    } catch (error) {
-        console.error("Error sending message:", error);
-        return [];
-    }
+// Helper function to get only message events
+export const getMessageEvents = (events: Event[]): Event[] => {
+    return events.filter(event => event.type === 'message');
+};
+
+import { Event } from "@/types";
+
+export const sendMessage = async (conversationID: string, message: Message): Promise<Event> => {
+    const response = await api.post("/conversations/" + conversationID + "/messages", message);
+    return response.data;
+
 };
