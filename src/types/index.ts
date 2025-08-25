@@ -46,6 +46,7 @@ export interface Conversation {
     createdAt: string;
     assignedAgentID: string;
     contact?: Contact;
+    lastMessage?: Message;
 }
 
 // Event types (for messages and other conversation events)
