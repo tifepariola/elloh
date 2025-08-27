@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/store/authContext"
-import { Bell, ContactIcon, InboxIcon, Menu, Search, Settings } from "lucide-react"
+import { Bell, ContactIcon, InboxIcon, Menu, Search, Settings, FileText } from "lucide-react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import logo from "../assets/logo-full.svg"
 
@@ -28,6 +28,7 @@ export default function Topbar() {
   const navItems = [
     { to: "/inbox", icon: InboxIcon, label: "Inbox" },
     { to: "/contacts", icon: ContactIcon, label: "Contacts" },
+    { to: "/templates", icon: FileText, label: "Templates" },
     { to: "/settings", icon: Settings, label: "Settings" },
   ]
 

@@ -7,43 +7,54 @@ import Contacts from './pages/Contacts';
 import Inbox from './pages/Inbox';
 import Layout from './pages/Layout';
 import SettingsPage from "./pages/Settings";
+import TemplatesPage from "./pages/Templates";
 import { AuthProvider } from './store/authContext';
+import { AgentProvider } from './providers/AgentProvider';
 
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/auth" element={
-            <PublicRoute>
-              <AuthPage />
-            </PublicRoute>
-          } />
-          <Route path="/inbox" element={
-            <ProtectedRoute>
-              <Layout>
-                <Inbox />
-              </Layout>
-            </ProtectedRoute>
-          } />
-          <Route path="/contacts" element={
-            <ProtectedRoute>
-              <Layout>
-                <Contacts />
-              </Layout>
-            </ProtectedRoute>
-          } />
-          <Route path="/settings" element={
-            <ProtectedRoute>
-              <Layout>
-                <SettingsPage />
-              </Layout>
-            </ProtectedRoute>
-          } />
-          <Route path="/" element={<Navigate to="/inbox" replace />} />
-          <Route path="*" element={<Navigate to="/inbox" replace />} />
-        </Routes>
-      </BrowserRouter>
+      <AgentProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/auth" element={
+              <PublicRoute>
+                <AuthPage />
+              </PublicRoute>
+            } />
+            <Route path="/inbox" element={
+              <ProtectedRoute>
+                <Layout>
+                  <Inbox />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/contacts" element={
+              <ProtectedRoute>
+                <Layout>
+                  <Contacts />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <Layout>
+                  <SettingsPage />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/templates" element={
+              <ProtectedRoute>
+                <Layout>
+                  <TemplatesPage />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/" element={<Navigate to="/inbox" replace />} />
+            <Route path="*" element={<Navigate to="/inbox" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AgentProvider>
     </AuthProvider>
   );
 }

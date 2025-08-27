@@ -35,3 +35,14 @@ export const sendMessage = async (conversationID: string, message: Message): Pro
     return response.data;
 
 };
+
+export const downloadMedia = async (mediaId: string): Promise<string> => {
+    const response = await api.get("/media/" + mediaId + "/download");
+    console.log("response", response.data);
+    return response.data.url;
+};
+
+export const listMessageTemplates = async (): Promise<any> => {
+    const response = await api.get("/message-templates");
+    return response.data;
+};

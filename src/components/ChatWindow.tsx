@@ -1,13 +1,15 @@
-import { listMessages, sendMessage } from "@/api";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { listMessages, listMessageTemplates, sendMessage } from "@/api";
+import { confirmSignedUpload, downloadMedia, startSignedUpload, uploadMedia } from "@/api/media";
 import { formatDate } from "@/lib/utils";
+import { useAgents } from "@/providers/AgentProvider";
 import { Conversation, Event, Message } from "@/types";
-import { ChevronLeft, Send, UserPlus, Image as ImageIcon, Loader2 } from "lucide-react";
+import { ChevronLeft, FolderOpen, Image as ImageIcon, Loader2, Send, UserPlus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import AddContact from "./AddContact";
-import PlatformLogo from "./PlatformLogo";
 import { Button } from "./ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import UserAvatar from "./UserAvatar";
 
 type ChatWindowProps = {
     onBack: () => void;
@@ -21,8 +23,42 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
     const [isLoading, setIsLoading] = useState(false);
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const { agents } = useAgents();
 
     const [isAddContactOpen, setIsAddContactOpen] = useState(false);
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [previewFile, setPreviewFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+
+    const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+    const [templates, setTemplates] = useState<any[]>([]);
+    const [templateSearch, setTemplateSearch] = useState("");
+    const [loadingTemplates, setLoadingTemplates] = useState(false);
+
+    const getAgentName = (actorID: string) => {
+        if (!agents || !Array.isArray(agents)) {
+            return "Unknown Agent"; // fallback to actorID if agents is not available
+        }
+        const agent = agents.find(a => a.id === actorID);
+        return agent ? `${agent.firstName} ${agent.lastName}` : "Unknown Agent"; // fallback to actorID if not found
+    };
+
+    const fetchTemplates = async () => {
+        try {
+            setLoadingTemplates(true);
+            const data = await listMessageTemplates(); // API should return templates
+            setTemplates(data.templates || []);
+        } catch (error) {
+            console.error("Error fetching templates:", error);
+        } finally {
+            setLoadingTemplates(false);
+        }
+    };
+
+    useEffect(() => {
+        if (isTemplateDialogOpen) fetchTemplates();
+    }, [isTemplateDialogOpen]);
 
     const scrollToBottom = (smooth = true) => {
         messagesEndRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto" });
@@ -32,6 +68,58 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
         const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
         setShouldAutoScroll(scrollHeight - scrollTop <= clientHeight + 100);
     };
+
+    const handleUploadImage = async (file: File) => {
+        const response = await startSignedUpload(file.type);
+        const url = response.uploadURL;
+        const result = await uploadMedia(url, file);
+        const mediaId = result.mediaId;
+        await confirmSignedUpload(mediaId);
+        return mediaId;
+    };
+
+    const handleFileSelect = (file: File) => {
+        setPreviewFile(file);
+        const url = URL.createObjectURL(file);
+        setPreviewUrl(url);
+        setIsPreviewOpen(true);
+    };
+
+    const handleConfirmUpload = async () => {
+        if (!previewFile) return;
+
+        try {
+            setIsUploading(true);
+            const mediaId = await handleUploadImage(previewFile);
+            console.log("mediaId", mediaId);
+            // const toSend: Message = {
+            //     body: { type: "image", image: { id: mediaId }, text: "" }, // adjust according to API
+            // };
+            // await sendMessage(conversation.id, toSend);
+            // await fetchMessages();
+            scrollToBottom();
+        } catch (error) {
+            console.error("Error uploading file:", error);
+        } finally {
+            setIsUploading(false);
+            handleClosePreview();
+        }
+    };
+
+    const handleClosePreview = () => {
+        setIsPreviewOpen(false);
+        setPreviewFile(null);
+        if (previewUrl) {
+            URL.revokeObjectURL(previewUrl);
+            setPreviewUrl(null);
+        }
+        // Reset file input
+        const fileInput = document.getElementById("file-upload") as HTMLInputElement;
+        if (fileInput) {
+            fileInput.value = "";
+        }
+    };
+
 
     const fetchMessages = async () => {
         try {
@@ -45,6 +133,26 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
             console.error("Error fetching messages:", error);
         } finally {
             setIsLoading(false);
+        }
+    };
+    const handleSendTemplate = async (template: any) => {
+        try {
+            await sendMessage(conversation.id, {
+                body: {
+                    type: "template",
+                    // template: {
+                    //     name: template.name,
+                    //     language: template.language,
+                    //     components: template.components || []
+                    // }
+                    text: template.text
+                }
+            });
+            setIsTemplateDialogOpen(false);
+            await fetchMessages();
+            scrollToBottom();
+        } catch (error) {
+            console.error("Error sending template:", error);
         }
     };
 
@@ -80,13 +188,8 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
             {/* Header */}
             <div className="flex items-center border-b py-3 px-4 gap-3 sticky top-0 z-10 h-18">
                 <ChevronLeft className="size-6" onClick={onBack} />
-                <div className="relative flex items-center gap-3 flex-1">
-                    <Avatar className="w-10 h-10">
-                        <AvatarFallback>
-                            {conversation.contact?.computedDisplayName?.substring(0, 2).toUpperCase() || conversation.contactID?.substring(0, 2).toUpperCase() || "?"}
-                        </AvatarFallback>
-                    </Avatar>
-                    <PlatformLogo platform={conversation.platform} className="size-3 absolute bottom-0 left-7" />
+                <div className="flex items-center gap-3 flex-1">
+                    <UserAvatar name={conversation.contact?.computedDisplayName || conversation.contactID || ""} platform={conversation.platform} className="w-10 h-10" />
                     <div className="flex-1">
                         <p className="font-semibold text-gray-900 truncate">
                             {conversation.contact?.computedDisplayName || conversation.contactID}
@@ -133,47 +236,10 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
                 ) : (
                     <>
                         {messages.map((msg) => {
-                            const isAgent = msg.actorType === "agent";
-                            return (
-                                <div
-                                    key={msg.id}
-                                    className={`flex flex-col max-w-[75%] ${isAgent ? "ml-auto items-end" : "items-start"
-                                        }`}
-                                >
-                                    <div
-                                        className={`rounded-2xl px-4 py-2 ${isAgent
-                                                ? "bg-primary text-white rounded-br-none"
-                                                : "bg-gray-100 text-gray-900 rounded-bl-none"
-                                            }`}
-                                    >
-                                        {msg.message?.body.type === "text" && (
-                                            <span>{msg.message.body.text}</span>
-                                        )}
-                                        {msg.message?.body.type === "image" && msg.message.body.image?.link && (
-                                            <img
-                                                src={msg.message.body.image.link}
-                                                alt="Image"
-                                                className="rounded-md max-w-[200px] mt-1"
-                                            />
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
-                                        {isAgent && (
-                                            <Tooltip>
-                                                <TooltipTrigger>
-                                                    <span>{msg.message.status}</span>
-                                                </TooltipTrigger>
-                                                {msg.message.statusReason && (
-                                                    <TooltipContent>
-                                                        {msg.message.statusReason}
-                                                    </TooltipContent>
-                                                )}
-                                            </Tooltip>
-                                        )}
-                                        <span>• {formatDate(msg.createdAt, "short")}</span>
-                                    </div>
-                                </div>
-                            );
+                            if (msg.type === "note") {
+                                return _buildNotes(msg, getAgentName);
+                            }
+                            return _buildMessageContainer(msg, getAgentName);
                         })}
                         <div ref={messagesEndRef} />
                     </>
@@ -182,6 +248,40 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
 
             {/* Input Bar */}
             <div className="p-4 border-t flex items-center gap-2 sticky bottom-0">
+                {/* Hidden File Input */}
+                <input
+                    id="file-upload"
+                    type="file"
+                    accept="image/*" // or change to "*/*" for all file types
+                    className="hidden"
+                    onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        handleFileSelect(file);
+                    }}
+                />
+
+                {/* Message Template Button */}
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsTemplateDialogOpen(true)}
+                    className="rounded-full"
+                >
+                    <FolderOpen className="size-5" /> {/* or a better icon for templates */}
+                </Button>
+
+                {/* Upload Button */}
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => document.getElementById("file-upload")?.click()}
+                    className="rounded-full"
+                >
+                    <ImageIcon className="size-5" />
+                </Button>
+
+                {/* Text Input */}
                 <input
                     type="text"
                     value={inputValue}
@@ -195,10 +295,208 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
                     placeholder="Type your message..."
                     className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none"
                 />
-                <Button onClick={handleSendMessage} disabled={!inputValue.trim()} className="rounded-full">
+
+                {/* Send Button */}
+                <Button
+                    onClick={handleSendMessage}
+                    disabled={!inputValue.trim()}
+                    className="rounded-full"
+                >
                     <Send className="size-5" />
                 </Button>
             </div>
+
+            {/* Image Preview Dialog */}
+            <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Preview Image</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        {previewUrl && (
+                            <div className="relative">
+                                <img
+                                    src={previewUrl}
+                                    alt="Preview"
+                                    className="w-full h-full object-cover rounded-lg"
+                                />
+                            </div>
+                        )}
+                        <div className="flex justify-end gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={handleClosePreview}
+                                disabled={isUploading}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleConfirmUpload}
+                                disabled={isUploading}
+                                className="flex items-center gap-2"
+                            >
+                                {isUploading ? (
+                                    <>
+                                        <Loader2 className="size-4 animate-spin" />
+                                        Uploading...
+                                    </>
+                                ) : (
+                                    "Send Image"
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+            <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Select Message Template</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <input
+                            type="text"
+                            placeholder="Search templates..."
+                            value={templateSearch}
+                            onChange={(e) => setTemplateSearch(e.target.value)}
+                            className="w-full rounded-md border px-3 py-2 text-sm"
+                        />
+                        <div className="max-h-64 overflow-y-auto space-y-2">
+                            {loadingTemplates ? (
+                                <div className="flex justify-center items-center py-4">
+                                    <Loader2 className="animate-spin size-5 text-gray-400" />
+                                </div>
+                            ) : templates.length === 0 ? (
+                                <p className="text-gray-500 text-center">No templates found</p>
+                            ) : (
+                                templates
+                                    .filter(t => t.name.toLowerCase().includes(templateSearch.toLowerCase()))
+                                    .map(template => (
+                                        <div
+                                            key={template.id}
+                                            className="border rounded-md p-3 flex justify-between items-center hover:bg-gray-50"
+                                        >
+                                            <div>
+                                                <p className="font-medium text-sm">{template.name}</p>
+                                                <p className="text-xs text-gray-500">{template.language}</p>
+                                            </div>
+                                            <Button
+                                                size="sm"
+                                                onClick={() => handleSendTemplate(template)}
+                                            >
+                                                Send
+                                            </Button>
+                                        </div>
+                                    ))
+                            )}
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </div>
+    );
+}
+
+
+function ImageMessage({ imageId }: { imageId: string }) {
+    const [src, setSrc] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchImage = async () => {
+            try {
+                const url = await downloadMedia(imageId); // get signed URL
+                setSrc(url);
+            } catch (error) {
+                // setSrc("https://storage.googleapis.com/elloh-dev-channel-media/0620d27c-9de6-42b0-bc5e-9c9f4c1d75fd/ddbc5f1b-1144-4953-8f04-a4fb0e6dbb2e?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=core-service-sa%40elloh-dev.iam.gserviceaccount.com%2F20250827%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20250827T135750Z&X-Goog-Expires=604799&X-Goog-Signature=8b15154b38b82581f93d1076856c2ab81977788902ca52fcd1396d71875b3324617b76432dc8627992a3409fe56ef8880435f3575a5d309625a64702d875c63e4affdabc6df150e6b9661622d718307d85b75c1c38b176ef9ecfc17bdaf7e4eadfdc7dc5464a1dd942cefd18c8e0fcdb7270c2db5f1905834b716bb7e31e4e365b1ad38fde3adebccd3473468a18c9ece7d47d5578ea406c349b77d49b6072fe9f90e993ca56b4ebdbdd14397189737b4db7bed2dde77106885ad2a4036824aaa14dae5fd80d3d2edcd0b0269bde4e06442cc1b41973f58e2cfb30fe3157a2bc5be0e057d8f60dc301c74566c446c84d262c526e9efee6136e41b8478ec3f143&X-Goog-SignedHeaders=host")
+                console.error("Error loading image:", error);
+            }
+        };
+        fetchImage();
+    }, [imageId]);
+
+    return (
+        <div
+            className="w-[250px] h-[200px] bg-gray-100 rounded-md flex items-center justify-center relative"
+        >
+            {loading && (
+                <Loader2 className="size-6 animate-spin text-gray-400 absolute" />
+            )}
+            {src && (
+                <img
+                    src={src}
+                    alt="Image"
+                    className="rounded-md w-full max-h-full object-cover"
+                    onLoad={() => setLoading(false)}
+                    style={{ display: loading ? "none" : "block" }}
+                />
+            )}
+        </div>
+    );
+}
+
+function _buildTextMessage(msg: Event) {
+    return <span>{msg.message.body.text}</span>;
+}
+
+function _buildStatusMessage(msg: Event) {
+    return <span>{msg.message?.status}</span>;
+}
+
+function _buildStatusReasonMessage(msg: Event) {
+    return <span>{msg.message?.statusReason}</span>;
+}
+
+function _buildMessage(msg: Event, isAgent: boolean) {
+    switch (msg.message?.body.type) {
+        case "text":
+            return <div
+                className={`rounded-2xl px-4 py-2 ${isAgent
+                    ? "bg-primary text-white rounded-br-none"
+                    : "bg-gray-100 text-gray-900 rounded-bl-none"
+                    }`}
+            >
+                {_buildTextMessage(msg)}
+            </div>
+        case "image":
+            return <ImageMessage imageId={msg.message.body.image.id} />;
+        default:
+            return <span>Unknown message type: {msg.message?.body.type}</span>;
+    }
+}
+
+function _buildMessageContainer(msg: Event, getAgentName: (id: string) => string) {
+    const isAgent = msg.actorType === "agent";
+    return (
+        <div
+            key={msg.id}
+            className={`flex flex-col max-w-[75%] ${isAgent ? "ml-auto items-end" : "items-start"}`}
+        >
+            <span className="text-xs text-gray-400 mb-1">{formatDate(msg.createdAt, "short")}</span>
+            {_buildMessage(msg, isAgent)}
+            <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
+                {isAgent && (
+                    <Tooltip>
+                        <TooltipTrigger>
+                            {_buildStatusMessage(msg)}
+                        </TooltipTrigger>
+                        {msg.message?.statusReason && (
+                            <TooltipContent>
+                                {_buildStatusReasonMessage(msg)}
+                            </TooltipContent>
+                        )}
+                    </Tooltip>
+                )}
+                {isAgent && <span className="ml-1 text-gray-700">{getAgentName(msg.actorID)}</span>}
+            </div>
+        </div>
+    );
+}
+
+function _buildNotes(msg: Event, getAgentName: (id: string) => string) {
+    return (
+        <div className="flex items-center justify-center gap-1 text-xs">
+            <span>{getAgentName(msg.actorID)} shared a note</span>
         </div>
     );
 }

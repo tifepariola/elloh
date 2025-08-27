@@ -46,7 +46,7 @@ export interface Conversation {
     createdAt: string;
     assignedAgentID: string;
     contact?: Contact;
-    lastMessage?: Message;
+    lastEvent?: Event;
 }
 
 // Event types (for messages and other conversation events)
@@ -61,7 +61,7 @@ export interface Event {
             type: string;
             text: string;
             image: {
-                link: string;
+                id: string;
             };
         };
     };
@@ -77,6 +77,9 @@ export interface Message {
     body: {
         type: string;
         text: string;
+        image?: {
+            id: string;
+        };
     };
 }
 
@@ -106,4 +109,52 @@ export interface MessagesResponse {
     total?: number;
     page?: number;
     limit?: number;
-} 
+}
+
+export interface Agent {
+    id: string;
+    firstName: string;
+    lastName: string;
+    status: "active" | "inactive";
+    createdAt: string;
+    updatedAt: string;
+}
+
+// Message Template types
+export interface MessageTemplate {
+    id: string;
+    workspaceID: string;
+    name: string;
+    status: "active" | "inactive";
+    platform: string;
+    liveVersionID: string;
+    draftVersionID: string | null;
+    platformReference: string;
+    platformMetadata: {
+        category: string;
+    };
+    content: string;
+    updatedAt: string;
+    createdAt: string;
+    publishedAt: string;
+}
+
+export interface CreateTemplateRequest {
+    name: string;
+    content: string;
+    category: string;
+}
+
+export interface UpdateTemplateRequest {
+    name?: string;
+    content?: string;
+    category?: string;
+    isActive?: boolean;
+}
+
+export interface TemplatesResponse {
+    templates: MessageTemplate[];
+    total?: number;
+    page?: number;
+    limit?: number;
+}

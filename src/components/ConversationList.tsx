@@ -1,11 +1,10 @@
 import { getContact, listConversations } from "@/api";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Conversation } from "@/types";
+import { Conversation, Event } from "@/types";
 import { MessageCircle, MessageCircleMore } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NewChatModal } from "./NewChatModal";
-import PlatformLogo from "./PlatformLogo";
+import UserAvatar from "./UserAvatar";
 
 type ConversationListProps = {
   onSelect: (conv: Conversation) => void;
@@ -87,18 +86,11 @@ export default function ConversationList({ onSelect, className = "" }: Conversat
                 onClick={() => handleSelectConversation(conv)}
               >
                 {/* Avatar */}
-                <div className="relative">
-                  <Avatar className="w-12 h-12">
-                    <AvatarFallback>
-                      {conv.contact?.computedDisplayName?.substring(0, 2).toUpperCase() || conv.contactID?.substring(0, 2).toUpperCase() || "?"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <PlatformLogo platform={conv.platform} className="size-4 absolute bottom-0 right-0" />
-                </div>
+                <UserAvatar name={conv.contact?.computedDisplayName || conv.contactID || ""} platform={conv.platform} className="w-12 h-12" />
 
                 {/* Conversation Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-center mb-1">
+                  <div className="flex justify-between items-center">
                     <span className="font-medium text-gray-900 truncate">
                       {conv.contact?.computedDisplayName || conv.contactID}
                     </span>
@@ -107,9 +99,7 @@ export default function ConversationList({ onSelect, className = "" }: Conversat
                     </span>
                   </div>
                   <div className="text-sm text-gray-500 truncate">
-                    {
-                      conv.lastMessage ? conv.lastMessage.body.text :
-                        `${conv.platform} • ${conv.status}`}
+                    {_buildLastEvent(conv.lastEvent)}
                   </div>
                 </div>
               </div>
@@ -122,4 +112,16 @@ export default function ConversationList({ onSelect, className = "" }: Conversat
       <NewChatModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
+}
+
+function _buildLastEvent(event: Event | undefined) {
+  if (!event) return null;
+  switch (event.message?.body.type) {
+    case "text":
+      return event.message?.body.text;
+    case "image":
+      return "Image";
+    default:
+      return "Unknown";
+  }
 }
