@@ -8,6 +8,6 @@ export default function UserAvatar({ name, platform, className }: { name: string
             {name?.substring(0, 2).toUpperCase()}
         </AvatarFallback>
     </Avatar>
-        {platform && <PlatformLogo platform={platform} className="size-3 absolute bottom-0 right-0" />}
+        {platform && <PlatformLogo platform={platform} className="absolute bottom-0 right-0" />}
     </div>
 }

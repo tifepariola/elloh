@@ -4,11 +4,12 @@ import { useEventsCache } from "@/hooks/useEventsCache";
 import { formatDate } from "@/lib/utils";
 import { useAgents } from "@/providers/AgentProvider";
 import { Conversation, Event, Message } from "@/types";
-import { Check, CheckCheck, ChevronLeft, FolderOpen, Image as ImageIcon, Loader2, Send, UserPlus, X } from "lucide-react";
+import { ChevronLeft, FileText, Image as ImageIcon, Loader2, Send, UserPlus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import AddContact from "./AddContact";
+import { StatusIcon } from "./StatusIcon";
 import { Button } from "./ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import UserAvatar from "./UserAvatar";
 
@@ -291,7 +292,7 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
                     onClick={() => setIsTemplateDialogOpen(true)}
                     className="rounded-full"
                 >
-                    <FolderOpen className="size-5" /> {/* or a better icon for templates */}
+                    <FileText className="size-5" /> {/* or a better icon for templates */}
                 </Button>
 
                 {/* Upload Button */}
@@ -430,12 +431,12 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
 function ImageMessage({ imageId }: { imageId: string }) {
     const [src, setSrc] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
     useEffect(() => {
         const fetchImage = async () => {
             try {
-                const url = await downloadMedia(imageId); // get signed URL
-                console.log("url", url);
+                const url = await downloadMedia(imageId); // returns signed URL
                 setSrc(url.link);
             } catch (error) {
                 console.error("Error loading image:", error);
@@ -445,22 +446,45 @@ function ImageMessage({ imageId }: { imageId: string }) {
     }, [imageId]);
 
     return (
-        <div
-            className="w-[250px] h-[200px] bg-gray-100 rounded-md flex items-center justify-center relative"
-        >
-            {loading && (
-                <Loader2 className="size-6 animate-spin text-gray-400 absolute" />
-            )}
-            {src && (
-                <img
-                    src={src}
-                    alt="Image"
-                    className="rounded-md w-full h-full object-cover"
-                    onLoad={() => setLoading(false)}
-                    style={{ display: loading ? "none" : "block" }}
-                />
-            )}
-        </div>
+        <>
+            {/* Thumbnail */}
+            <div
+                className="w-[250px] h-[200px] bg-gray-100 rounded-md flex items-center justify-center relative cursor-pointer"
+                onClick={() => src && setIsPreviewOpen(true)}
+            >
+                {loading && (
+                    <Loader2 className="size-6 animate-spin text-gray-400 absolute" />
+                )}
+                {src && (
+                    <img
+                        src={src}
+                        alt="Image"
+                        className="rounded-md w-full h-full object-cover"
+                        onLoad={() => setLoading(false)}
+                        style={{ display: loading ? "none" : "block" }}
+                    />
+                )}
+            </div>
+
+            {/* Full Image Dialog */}
+            <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+                <DialogContent className="max-w-4xl p-1 bg-white">
+                    <DialogTitle className="sr-only">Full Image</DialogTitle>
+                    <DialogDescription className="sr-only">Full Image</DialogDescription>
+                    {src ? (
+                        <img
+                            src={src}
+                            alt="Full Preview"
+                            className="w-full h-auto max-h-[90vh] object-contain rounded-md"
+                        />
+                    ) : (
+                        <div className="flex justify-center items-center h-[400px] text-white">
+                            <Loader2 className="animate-spin size-8" />
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }
 
@@ -511,7 +535,7 @@ function _buildMessageContainer(msg: Event, getAgentName: (id: string) => string
                 {isAgent && (
                     <Tooltip>
                         <TooltipTrigger>
-                            {_buildEventMessageStatus(msg)}
+                            <StatusIcon status={msg.message?.status || "sending"} />
                         </TooltipTrigger>
                         {msg.message?.statusReason && (
                             <TooltipContent>
@@ -533,18 +557,3 @@ function _buildNotes(msg: Event, getAgentName: (id: string) => string) {
     );
 }
 
-function _buildEventMessageStatus(msg: Event) {
-    switch (msg.message?.status) {
-        case "sending":
-        case "accepted":
-            return <Loader2 className="size-4 animate-spin text-gray-400" />;
-        case "sent":
-            return <Check className="size-4 text-green-500" />;
-        case "delivered":
-            return <CheckCheck className="size-4 text-green-500" />;
-        case "failed":
-            return <X className="size-4 text-red-500" />;
-        default:
-            return <span>{msg.message?.status}</span>;
-    }
-}

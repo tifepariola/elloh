@@ -1,26 +1,23 @@
 import { getContact, listConversations } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Conversation, Event } from "@/types";
-import { MessageCircle, MessageCircleMore } from "lucide-react";
+import { ImageIcon, MessageCircle, MessageCircleMore } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NewChatModal } from "./NewChatModal";
+import { StatusIcon } from "./StatusIcon";
 import UserAvatar from "./UserAvatar";
 
 type ConversationListProps = {
   onSelect: (conv: Conversation) => void;
+  selectedConversation: Conversation | null;
   className?: string;
 };
 
-export default function ConversationList({ onSelect, className = "" }: ConversationListProps) {
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+export default function ConversationList({ onSelect, selectedConversation, className = "" }: ConversationListProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const handleSelectConversation = (conv: Conversation) => {
-    setSelectedConversation(conv);
-    onSelect(conv);
-  };
 
   const getConversations = async () => {
     try {
@@ -83,7 +80,7 @@ export default function ConversationList({ onSelect, className = "" }: Conversat
                 aria-selected={selectedConversation?.id === conv.id}
                 className={`flex gap-3 p-4 cursor-pointer transition-colors ${selectedConversation?.id === conv.id ? "bg-gray-100" : "hover:bg-gray-50"
                   }`}
-                onClick={() => handleSelectConversation(conv)}
+                onClick={() => onSelect(conv)}
               >
                 {/* Avatar */}
                 <UserAvatar name={conv.contact?.computedDisplayName || conv.contactID || ""} platform={conv.platform} className="w-12 h-12" />
@@ -118,9 +115,25 @@ function _buildLastEvent(event: Event | undefined) {
   if (!event) return null;
   switch (event.message?.body.type) {
     case "text":
+      if (event.actorType === "agent") {
+        return <div className="flex flex-row items-center gap-1 text-gray-500">
+          <StatusIcon status={event.message?.status || "sending"} className="flex-shrink-0" />
+          <span className="truncate">{event.message?.body.text}</span>
+        </div>;
+      }
       return event.message?.body.text;
     case "image":
-      return "Image";
+      if (event.actorType === "agent") {
+        return <div className="flex flex-row items-center gap-1 text-gray-500">
+          <StatusIcon status={event.message?.status || "sending"} className="flex-shrink-0" />
+          <ImageIcon className="size-4 text-gray-500 flex-shrink-0" />
+          <span className="truncate">{event.message?.body.image.text || "Photo"}</span>
+        </div>;
+      }
+      return <div className="flex flex-row items-center gap-1 text-gray-500">
+        <ImageIcon className="size-4 text-gray-500 flex-shrink-0" />
+        <span className="truncate">{event.message?.body.image.text || "Photo"}</span>
+      </div>;
     default:
       return "Unknown";
   }

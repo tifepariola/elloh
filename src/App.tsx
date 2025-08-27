@@ -9,12 +9,10 @@ import Layout from './pages/Layout';
 import SettingsPage from "./pages/Settings";
 import TemplatesPage from "./pages/Templates";
 import { AuthProvider } from './store/authContext';
-import { AgentProvider } from './providers/AgentProvider';
 
 function App() {
   return (
     <AuthProvider>
-      <AgentProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={
@@ -54,7 +52,6 @@ function App() {
             <Route path="*" element={<Navigate to="/inbox" replace />} />
           </Routes>
         </BrowserRouter>
-      </AgentProvider>
     </AuthProvider>
   );
 }

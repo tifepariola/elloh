@@ -1,16 +1,19 @@
 import ChatWindow from "@/components/ChatWindow";
 import ConversationList from "@/components/ConversationList";
 import SvgLogo from "@/components/SvgLogo";
+import { AgentProvider } from "@/providers/AgentProvider";
 import { useState } from "react";
 
 export default function Inbox() {
   const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
 
   return (
+    <AgentProvider> 
     <div className="flex h-full">
        {/* Conversation List (desktop always visible, mobile hidden when chat is open) */}
       <ConversationList
         onSelect={setSelectedConversation}
+        selectedConversation={selectedConversation}
         className={`${selectedConversation ? "hidden md:flex" : "flex"}`}
       />
 
@@ -27,5 +30,6 @@ export default function Inbox() {
         </div>
       )}
     </div>
+    </AgentProvider>
   );
 }
