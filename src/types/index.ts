@@ -62,6 +62,7 @@ export interface Event {
             text: string;
             image: {
                 id: string;
+                text?: string;
             };
         };
     };
@@ -76,9 +77,10 @@ export interface Event {
 export interface Message {
     body: {
         type: string;
-        text: string;
+        text?: string;
         image?: {
             id: string;
+            text?: string;
         };
     };
 }

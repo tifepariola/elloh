@@ -7,8 +7,32 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatDate(date: string, format: "short" | "long") {
-  return moment(date).format(format === "short" ? "HH:mm" : "MMM D, YYYY, h:mm A");
+export function formatDate(date: string, format: string) {
+  switch (format) {
+    case "short":
+      return moment(date).format("HH:mm");
+    case "long":
+      return moment(date).format("MMM D, YYYY, h:mm A");
+    case "date":
+      return moment(date).format("MMM D, YYYY");
+    case "relative":
+      const now = moment();
+      if (moment(date).isSame(now, "day")) {
+        // Today
+        return "Today";
+      } else if (moment(date).isSame(now.clone().subtract(1, "day"), "day")) {
+        // Yesterday
+        return "Yesterday";
+      } else if (moment(date).isAfter(now.clone().subtract(7, "days"))) {
+        // Within the last week
+        return moment(date).format("dddd"); // e.g., Friday
+      } else {
+        // More than a week ago
+        return moment(date).format("MMM D, YYYY"); // e.g., Aug 15, 2025
+      }
+    default:
+      return moment(date).format("MMM D, YYYY, h:mm A");
+  }
 }
 
 

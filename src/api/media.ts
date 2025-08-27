@@ -1,8 +1,8 @@
 import axios from "axios";
 import api from "./axiosInstance";
 
-export const startSignedUpload = async (mimeType: string): Promise<any> => {
-    const response = await api.post("/media/upload", { mimeType });
+export const startSignedUpload = async (fileInfo: { mimeType: string, size: number }): Promise<any> => {
+    const response = await api.post("/media/upload", fileInfo);
     return response.data;
 };
 

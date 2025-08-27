@@ -20,6 +20,7 @@ type ChatWindowProps = {
 
 export default function ChatWindow({ onBack, conversation, className = "" }: ChatWindowProps) {
     const [inputValue, setInputValue] = useState("");
+    const [captionValue, setCaptionValue] = useState("");
     const { events: messages, isLoading, refreshEvents } = useEventsCache(conversation.id);
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -69,13 +70,28 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
         setShouldAutoScroll(scrollHeight - scrollTop <= clientHeight + 100);
     };
 
-    const handleUploadImage = async (file: File) => {
-        const response = await startSignedUpload(file.type);
-        const url = response.uploadURL;
-        const result = await uploadMedia(url, file);
-        const mediaId = result.mediaId;
-        await confirmSignedUpload(mediaId);
-        return mediaId;
+    const handleUploadImage = async (file: File, text?: string) => {
+        try {
+            setIsUploading(true);
+            const response = await startSignedUpload({ mimeType: file.type, size: file.size });
+            const { id, uploadURL } = response;
+            await uploadMedia(uploadURL, file).then(async () => {
+                const confirmed = await confirmSignedUpload(id);
+                sendMessage(conversation.id, {
+                    body: {
+                        type: "image",
+                        image: { id: id, text: text },
+                        text: text
+                    }
+                });
+                console.log("confirmed", confirmed);
+            });
+            return id;
+        } catch (error) {
+            console.error("Error uploading image:", error);
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     const handleFileSelect = (file: File) => {
@@ -83,6 +99,7 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
         const url = URL.createObjectURL(file);
         setPreviewUrl(url);
         setIsPreviewOpen(true);
+        setCaptionValue(inputValue || "");
     };
 
     const handleConfirmUpload = async () => {
@@ -90,7 +107,7 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
 
         try {
             setIsUploading(true);
-            const mediaId = await handleUploadImage(previewFile);
+            const mediaId = await handleUploadImage(previewFile, captionValue);
             console.log("mediaId", mediaId);
             // const toSend: Message = {
             //     body: { type: "image", image: { id: mediaId }, text: "" }, // adjust according to API
@@ -222,12 +239,31 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
                     </div>
                 ) : (
                     <>
-                        {messages.map((msg) => {
-                            if (msg.type === "note") {
-                                return _buildNotes(msg, getAgentName);
-                            }
-                            return _buildMessageContainer(msg, getAgentName);
-                        })}
+                        {(() => {
+                            let lastDate: string | null = null;
+
+                            return messages.map((msg) => {
+                                const currentDate = formatDate(msg.createdAt, "relative");
+                                const showDateDivider = currentDate !== lastDate;
+                                lastDate = currentDate;
+
+                                return (
+                                    <div key={msg.id}>
+                                        {showDateDivider && (
+                                            <div className="flex justify-center my-4">
+                                                <span className="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full">
+                                                    {currentDate}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        {msg.type === "note"
+                                            ? _buildNotes(msg, getAgentName)
+                                            : _buildMessageContainer(msg, getAgentName)}
+                                    </div>
+                                );
+                            });
+                        })()}
                         <div ref={messagesEndRef} />
                     </>
                 )}
@@ -310,17 +346,23 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
                             </div>
                         )}
                         <div className="flex justify-end gap-2">
-                            <Button
-                                variant="outline"
-                                onClick={handleClosePreview}
-                                disabled={isUploading}
-                            >
-                                Cancel
-                            </Button>
+                            <input
+                                type="text"
+                                value={captionValue}
+                                placeholder="Add a caption..."
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleConfirmUpload();
+                                    }
+                                }}
+                                onChange={(e) => setCaptionValue(e.target.value)}
+                                className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none"
+                            />
                             <Button
                                 onClick={handleConfirmUpload}
                                 disabled={isUploading}
-                                className="flex items-center gap-2"
+                                className="flex items-center gap-2 rounded-full"
                             >
                                 {isUploading ? (
                                     <>
@@ -328,7 +370,7 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
                                         Uploading...
                                     </>
                                 ) : (
-                                    "Send Image"
+                                    <Send className="size-5" />
                                 )}
                             </Button>
                         </div>
@@ -413,7 +455,7 @@ function ImageMessage({ imageId }: { imageId: string }) {
                 <img
                     src={src}
                     alt="Image"
-                    className="rounded-md w-full max-h-full object-cover"
+                    className="rounded-md w-full h-full object-cover"
                     onLoad={() => setLoading(false)}
                     style={{ display: loading ? "none" : "block" }}
                 />
@@ -423,7 +465,15 @@ function ImageMessage({ imageId }: { imageId: string }) {
 }
 
 function _buildTextMessage(msg: Event) {
-    return <span>{msg.message.body.text}</span>;
+    const isAgent = msg.actorType === "agent";
+    return <div
+        className={`rounded-2xl px-4 py-2 ${isAgent
+            ? "bg-primary text-white rounded-br-none"
+            : "bg-gray-100 text-gray-900 rounded-bl-none"
+            }`}
+    >
+        {<span>{msg.message.body.text || msg.message.body.image.text}</span>}
+    </div>;
 }
 
 
@@ -434,16 +484,14 @@ function _buildStatusReasonMessage(msg: Event) {
 function _buildMessage(msg: Event, isAgent: boolean) {
     switch (msg.message?.body.type) {
         case "text":
-            return <div
-                className={`rounded-2xl px-4 py-2 ${isAgent
-                    ? "bg-primary text-white rounded-br-none"
-                    : "bg-gray-100 text-gray-900 rounded-bl-none"
-                    }`}
-            >
-                {_buildTextMessage(msg)}
-            </div>
+            return _buildTextMessage(msg);
         case "image":
-            return <ImageMessage imageId={msg.message.body.image.id} />;
+            return <div className={`flex flex-col ${isAgent ? "items-end" : "items-start"} gap-1`}>
+                <ImageMessage imageId={msg.message.body.image.id} />
+                {msg.message.body.image.text && (
+                    _buildTextMessage(msg)
+                )}
+            </div>;
         default:
             return <span>Unknown message type: {msg.message?.body.type}</span>;
     }
