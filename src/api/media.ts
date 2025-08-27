@@ -20,7 +20,7 @@ export const confirmSignedUpload = async (mediaId: string): Promise<string> => {
     return response.data;
 };
 
-export const downloadMedia = async (mediaId: string): Promise<string> => {
+export const downloadMedia = async (mediaId: string): Promise<{ link: string }> => {
     const response = await api.get(`/media/${mediaId}/download`);
     return response.data;
 };

@@ -1,9 +1,10 @@
-import { listMessages, listMessageTemplates, sendMessage } from "@/api";
+import { listMessageTemplates, sendMessage } from "@/api";
 import { confirmSignedUpload, downloadMedia, startSignedUpload, uploadMedia } from "@/api/media";
+import { useEventsCache } from "@/hooks/useEventsCache";
 import { formatDate } from "@/lib/utils";
 import { useAgents } from "@/providers/AgentProvider";
 import { Conversation, Event, Message } from "@/types";
-import { ChevronLeft, FolderOpen, Image as ImageIcon, Loader2, Send, UserPlus } from "lucide-react";
+import { Check, CheckCheck, ChevronLeft, FolderOpen, Image as ImageIcon, Loader2, Send, UserPlus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import AddContact from "./AddContact";
 import { Button } from "./ui/button";
@@ -19,8 +20,7 @@ type ChatWindowProps = {
 
 export default function ChatWindow({ onBack, conversation, className = "" }: ChatWindowProps) {
     const [inputValue, setInputValue] = useState("");
-    const [messages, setMessages] = useState<Event[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
+    const { events: messages, isLoading, refreshEvents } = useEventsCache(conversation.id);
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const { agents } = useAgents();
@@ -96,7 +96,7 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
             //     body: { type: "image", image: { id: mediaId }, text: "" }, // adjust according to API
             // };
             // await sendMessage(conversation.id, toSend);
-            // await fetchMessages();
+            // await refreshEvents();
             scrollToBottom();
         } catch (error) {
             console.error("Error uploading file:", error);
@@ -121,20 +121,7 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
     };
 
 
-    const fetchMessages = async () => {
-        try {
-            setIsLoading(true);
-            const data = await listMessages(conversation.id);
-            const sortedMessages = data.events?.sort(
-                (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-            );
-            setMessages(sortedMessages || []);
-        } catch (error) {
-            console.error("Error fetching messages:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+
     const handleSendTemplate = async (template: any) => {
         try {
             await sendMessage(conversation.id, {
@@ -149,7 +136,7 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
                 }
             });
             setIsTemplateDialogOpen(false);
-            await fetchMessages();
+            await refreshEvents();
             scrollToBottom();
         } catch (error) {
             console.error("Error sending template:", error);
@@ -166,7 +153,7 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
         try {
             await sendMessage(conversation.id, toSend);
             setInputValue("");
-            await fetchMessages();
+            await refreshEvents();
             scrollToBottom();
         } catch (error) {
             console.error("Error sending message:", error);
@@ -174,8 +161,8 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
     };
 
     useEffect(() => {
-        fetchMessages();
-        const interval = setInterval(fetchMessages, 3000);
+        refreshEvents();
+        const interval = setInterval(refreshEvents, 3000);
         return () => clearInterval(interval);
     }, [conversation.id]);
 
@@ -406,9 +393,9 @@ function ImageMessage({ imageId }: { imageId: string }) {
         const fetchImage = async () => {
             try {
                 const url = await downloadMedia(imageId); // get signed URL
-                setSrc(url);
+                console.log("url", url);
+                setSrc(url.link);
             } catch (error) {
-                // setSrc("https://storage.googleapis.com/elloh-dev-channel-media/0620d27c-9de6-42b0-bc5e-9c9f4c1d75fd/ddbc5f1b-1144-4953-8f04-a4fb0e6dbb2e?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=core-service-sa%40elloh-dev.iam.gserviceaccount.com%2F20250827%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20250827T135750Z&X-Goog-Expires=604799&X-Goog-Signature=8b15154b38b82581f93d1076856c2ab81977788902ca52fcd1396d71875b3324617b76432dc8627992a3409fe56ef8880435f3575a5d309625a64702d875c63e4affdabc6df150e6b9661622d718307d85b75c1c38b176ef9ecfc17bdaf7e4eadfdc7dc5464a1dd942cefd18c8e0fcdb7270c2db5f1905834b716bb7e31e4e365b1ad38fde3adebccd3473468a18c9ece7d47d5578ea406c349b77d49b6072fe9f90e993ca56b4ebdbdd14397189737b4db7bed2dde77106885ad2a4036824aaa14dae5fd80d3d2edcd0b0269bde4e06442cc1b41973f58e2cfb30fe3157a2bc5be0e057d8f60dc301c74566c446c84d262c526e9efee6136e41b8478ec3f143&X-Goog-SignedHeaders=host")
                 console.error("Error loading image:", error);
             }
         };
@@ -439,9 +426,6 @@ function _buildTextMessage(msg: Event) {
     return <span>{msg.message.body.text}</span>;
 }
 
-function _buildStatusMessage(msg: Event) {
-    return <span>{msg.message?.status}</span>;
-}
 
 function _buildStatusReasonMessage(msg: Event) {
     return <span>{msg.message?.statusReason}</span>;
@@ -475,10 +459,11 @@ function _buildMessageContainer(msg: Event, getAgentName: (id: string) => string
             <span className="text-xs text-gray-400 mb-1">{formatDate(msg.createdAt, "short")}</span>
             {_buildMessage(msg, isAgent)}
             <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
+                {isAgent && <span className="ml-1 text-gray-700">{getAgentName(msg.actorID)}</span>}
                 {isAgent && (
                     <Tooltip>
                         <TooltipTrigger>
-                            {_buildStatusMessage(msg)}
+                            {_buildEventMessageStatus(msg)}
                         </TooltipTrigger>
                         {msg.message?.statusReason && (
                             <TooltipContent>
@@ -487,7 +472,6 @@ function _buildMessageContainer(msg: Event, getAgentName: (id: string) => string
                         )}
                     </Tooltip>
                 )}
-                {isAgent && <span className="ml-1 text-gray-700">{getAgentName(msg.actorID)}</span>}
             </div>
         </div>
     );
@@ -499,4 +483,20 @@ function _buildNotes(msg: Event, getAgentName: (id: string) => string) {
             <span>{getAgentName(msg.actorID)} shared a note</span>
         </div>
     );
+}
+
+function _buildEventMessageStatus(msg: Event) {
+    switch (msg.message?.status) {
+        case "sending":
+        case "accepted":
+            return <Loader2 className="size-4 animate-spin text-gray-400" />;
+        case "sent":
+            return <Check className="size-4 text-green-500" />;
+        case "delivered":
+            return <CheckCheck className="size-4 text-green-500" />;
+        case "failed":
+            return <X className="size-4 text-red-500" />;
+        default:
+            return <span>{msg.message?.status}</span>;
+    }
 }
