@@ -125,10 +125,10 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
         try {
             setIsLoading(true);
             const data = await listMessages(conversation.id);
-            const sortedMessages = data.events.sort(
+            const sortedMessages = data.events?.sort(
                 (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
             );
-            setMessages(sortedMessages);
+            setMessages(sortedMessages || []);
         } catch (error) {
             console.error("Error fetching messages:", error);
         } finally {
