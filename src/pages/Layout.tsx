@@ -1,4 +1,5 @@
 import Topbar from "@/components/Topbar";
+import { Toaster } from "sonner";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
 
@@ -8,6 +9,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <div className="overflow-hidden border-6 border-mine-shaft-900 rounded-xl flex-1 bg-white">
                 {children}
             </div>
+            <Toaster />
+
         </div>
     );
 }

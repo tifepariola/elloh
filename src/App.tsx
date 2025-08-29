@@ -8,6 +8,7 @@ import Inbox from './pages/Inbox';
 import Layout from './pages/Layout';
 import SettingsPage from "./pages/Settings";
 import TemplatesPage from "./pages/Templates";
+import TemplateVersionsPage from "./pages/TemplateVersions";
 import { AuthProvider } from './store/authContext';
 
 function App() {
@@ -45,6 +46,13 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <TemplatesPage />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/templates/:templateId/versions" element={
+              <ProtectedRoute>
+                <Layout>
+                  <TemplateVersionsPage />
                 </Layout>
               </ProtectedRoute>
             } />

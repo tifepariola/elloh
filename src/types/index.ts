@@ -143,13 +143,13 @@ export interface MessageTemplate {
 
 export interface CreateTemplateRequest {
     name: string;
-    content: string;
+    platform: string;
     category: string;
 }
 
 export interface UpdateTemplateRequest {
     name?: string;
-    content?: string;
+    platform?: string;
     category?: string;
     isActive?: boolean;
 }
@@ -159,4 +159,33 @@ export interface TemplatesResponse {
     total?: number;
     page?: number;
     limit?: number;
+}
+
+// Template Version types
+export interface TemplateBlock {
+    type: string;
+    role: string;
+    text: string;
+}
+
+export interface TemplateContent {
+    locale: string;
+    blocks: TemplateBlock[];
+    channelID: string;
+}
+
+export interface TemplateVersion {
+    id: string;
+    workspaceID: string;
+    status: "live" | "draft" | "rejected";
+    content: TemplateContent;
+    templateID: string;
+    description: string;
+    updatedAt: string;
+    createdAt: string;
+}
+
+export interface TemplateVersionsResponse {
+    count: number;
+    versions: TemplateVersion[];
 }

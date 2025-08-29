@@ -4,6 +4,7 @@ import {
     CreateTemplateRequest, 
     UpdateTemplateRequest, 
     TemplatesResponse,
+    TemplateVersionsResponse,
     ApiResponse 
 } from '../types';
 
@@ -41,6 +42,36 @@ export const templatesApi = {
     // Toggle template active status
     toggleTemplateStatus: async (id: string, isActive: boolean): Promise<MessageTemplate> => {
         const response = await axiosInstance.patch(`/templates/${id}/status`, { isActive });
+        return response.data;
+    },
+
+    // Get template versions
+    getTemplateVersions: async (templateId: string): Promise<TemplateVersionsResponse> => {
+        const response = await axiosInstance.get(`/templates/${templateId}/versions`);
+        return response.data;
+    },
+
+    // Create new template version
+    createTemplateVersion: async (templateId: string, versionData: {
+        content: any;
+        description?: string;
+    }): Promise<any> => {
+        const response = await axiosInstance.post(`/templates/${templateId}/versions`, versionData);
+        return response.data;
+    },
+
+    // Update template version
+    updateTemplateVersion: async (templateId: string, versionId: string, versionData: {
+        content?: any;
+        description?: string;
+    }): Promise<any> => {
+        const response = await axiosInstance.put(`/templates/${templateId}/versions/${versionId}`, versionData);
+        return response.data;
+    },
+
+    // Delete template version
+    deleteTemplateVersion: async (templateId: string, versionId: string): Promise<ApiResponse<null>> => {
+        const response = await axiosInstance.delete(`/templates/${templateId}/versions/${versionId}`);
         return response.data;
     }
 }; 

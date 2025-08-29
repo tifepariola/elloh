@@ -51,7 +51,7 @@ export default function Topbar() {
             >
               <Link to={to} title={label}>
                 <Icon className="h-5 w-5" />
-                <span className="hidden sm:block">{label}</span>
+                <span className="hidden md:block">{label}</span>
               </Link>
             </Button>
           ))}
@@ -65,10 +65,10 @@ export default function Topbar() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
             placeholder="Search..."
-            className="bg-mine-shaft-700 border-none text-sm pl-9 w-[250px] rounded-lg placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500"
+            className="bg-mine-shaft-700 border-none text-sm pl-9 max-w-[250px] rounded-lg placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        <Button variant="ghost" className="sm:hidden">
+        <Button variant="ghost" className="md:hidden">
           <Search className="h-5 w-5" />
         </Button>
 

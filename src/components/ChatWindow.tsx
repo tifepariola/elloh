@@ -10,7 +10,7 @@ import AddContact from "./AddContact";
 import { StatusIcon } from "./StatusIcon";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "./ui/hover-card";
 import UserAvatar from "./UserAvatar";
 
 type ChatWindowProps = {
@@ -161,6 +161,18 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
         }
     };
 
+    const contactMessages = messages.filter(
+        msg => msg.actorType === "contact" && msg.updatedAt
+    );
+
+    const lastContactMessage = contactMessages
+        .sort((a, b) => new Date(b.updatedAt!).getTime() - new Date(a.updatedAt!).getTime())[0];
+
+    const showNotice =
+        !lastContactMessage ||
+        new Date(lastContactMessage.updatedAt!).getTime() < Date.now() - 24 * 60 * 60 * 1000;
+
+
     const handleSendMessage = async () => {
         if (!inputValue.trim()) return;
 
@@ -244,6 +256,7 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
                             let lastDate: string | null = null;
 
                             return messages.map((msg) => {
+                                if (msg.conversationID !== conversation.id) return null;
                                 const currentDate = formatDate(msg.createdAt, "relative");
                                 const showDateDivider = currentDate !== lastDate;
                                 lastDate = currentDate;
@@ -270,8 +283,19 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
                 )}
             </div>
 
+
             {/* Input Bar */}
+            {showNotice ? (
+                <div className="flex items-center gap-1 text-xs text-gray-400 p-4 border-t bottom-0">
+                    <p>
+                        {!lastContactMessage
+                            ? "This conversation has not started yet. The first message must be a template message."
+                            : "More than 24 hours have passed since the customer last replied. You can only re-engage with a template message."}
+                    </p>
+                </div>
+            ): (
             <div className="p-4 border-t flex items-center gap-2 sticky bottom-0">
+
                 {/* Hidden File Input */}
                 <input
                     id="file-upload"
@@ -329,6 +353,9 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
                     <Send className="size-5" />
                 </Button>
             </div>
+            )}
+
+
 
             {/* Image Preview Dialog */}
             <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
@@ -530,19 +557,19 @@ function _buildMessageContainer(msg: Event, getAgentName: (id: string) => string
         >
             <span className="text-xs text-gray-400 mb-1">{formatDate(msg.createdAt, "short")}</span>
             {_buildMessage(msg, isAgent)}
-            <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
-                {isAgent && <span className="ml-1 text-gray-700">{getAgentName(msg.actorID)}</span>}
+            <div className="mt-1 text-xs text-gray-400">
                 {isAgent && (
-                    <Tooltip>
-                        <TooltipTrigger>
+                    <HoverCard>
+                        <HoverCardTrigger className="flex items-center gap-1">
+                            {isAgent && <span className="text-gray-700">{getAgentName(msg.actorID)}</span>}
                             <StatusIcon status={msg.message?.status || "sending"} />
-                        </TooltipTrigger>
+                        </HoverCardTrigger>
                         {msg.message?.statusReason && (
-                            <TooltipContent>
+                            <HoverCardContent className="mr-3">
                                 {_buildStatusReasonMessage(msg)}
-                            </TooltipContent>
+                            </HoverCardContent>
                         )}
-                    </Tooltip>
+                    </HoverCard>
                 )}
             </div>
         </div>
