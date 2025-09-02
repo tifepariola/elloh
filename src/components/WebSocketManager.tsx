@@ -4,7 +4,7 @@ import { useAuth } from '@/store/authContext';
 
 export default function WebSocketManager() {
     const { token, isAuthenticated } = useAuth();
-    const { connect, disconnect, connectionState } = useWebSocket();
+    const { connect, disconnect,  } = useWebSocket();
 
     useEffect(() => {
         if (isAuthenticated && token) {
