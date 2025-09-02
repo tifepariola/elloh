@@ -69,7 +69,7 @@ export default function TemplateVersionsPage() {
             }
         } catch (error) {
             console.error("Error loading template versions:", error);
-            alert("Failed to load template versions");
+            toast.error("Failed to load template versions");
         } finally {
             setLoading(false);
         }
@@ -208,7 +208,7 @@ export default function TemplateVersionsPage() {
                             Back to Templates
                         </Button>
                         <div>
-                            <h1 className="text-xl font-semibold">Template Versions</h1>
+                            <h1 className="text-lg font-semibold">Template Versions</h1>
                             <p className="text-sm text-muted-foreground">
                                 {templateName} • {versions.length} version{versions.length !== 1 ? 's' : ''}
                             </p>

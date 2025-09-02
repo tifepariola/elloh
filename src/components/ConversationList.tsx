@@ -19,9 +19,11 @@ export default function ConversationList({ onSelect, selectedConversation, class
   const [isLoading, setIsLoading] = useState(true);
 
 
-  const getConversations = async () => {
+  const getConversations = async (refresh = false) => {
     try {
-      setIsLoading(true);
+      if (refresh) {
+        setIsLoading(true);
+      }
       const data = await listConversations();
       const conversationsData = data.conversations || [];
 
@@ -45,7 +47,9 @@ export default function ConversationList({ onSelect, selectedConversation, class
   };
 
   useEffect(() => {
-    getConversations();
+    getConversations(true);
+    const interval = setInterval(getConversations, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   return (

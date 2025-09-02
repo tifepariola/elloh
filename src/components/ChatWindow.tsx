@@ -3,8 +3,9 @@ import { confirmSignedUpload, downloadMedia, startSignedUpload, uploadMedia } fr
 import { useEventsCache } from "@/hooks/useEventsCache";
 import { formatDate } from "@/lib/utils";
 import { useAgents } from "@/providers/AgentProvider";
+import { ConversationEvent, useWebSocket } from "@/sockets/socket";
 import { Conversation, Event, Message } from "@/types";
-import { ChevronLeft, FileText, Image as ImageIcon, Loader2, Send, UserPlus } from "lucide-react";
+import { ChevronLeft, FileText, Image as ImageIcon, Loader2, Send, UserPlus, Wifi, WifiOff } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import AddContact from "./AddContact";
 import { StatusIcon } from "./StatusIcon";
@@ -26,6 +27,15 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const { agents } = useAgents();
+    
+    // WebSocket integration
+    const { 
+        connect, 
+        subscribeToConversation, 
+        unsubscribeFromConversation, 
+        isConnected, 
+        // connectionState 
+    } = useWebSocket();
 
     const [isAddContactOpen, setIsAddContactOpen] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -110,11 +120,6 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
             setIsUploading(true);
             const mediaId = await handleUploadImage(previewFile, captionValue);
             console.log("mediaId", mediaId);
-            // const toSend: Message = {
-            //     body: { type: "image", image: { id: mediaId }, text: "" }, // adjust according to API
-            // };
-            // await sendMessage(conversation.id, toSend);
-            // await refreshEvents();
             scrollToBottom();
         } catch (error) {
             console.error("Error uploading file:", error);
@@ -145,11 +150,6 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
             await sendMessage(conversation.id, {
                 body: {
                     type: "template",
-                    // template: {
-                    //     name: template.name,
-                    //     language: template.language,
-                    //     components: template.components || []
-                    // }
                     text: template.text
                 }
             });
@@ -190,12 +190,36 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
         }
     };
 
+    // WebSocket connection and subscription
     useEffect(() => {
-        refreshEvents();
-        const interval = setInterval(refreshEvents, 3000);
-        return () => clearInterval(interval);
-    }, [conversation.id]);
-
+        let didSubscribe = false;
+      
+        const setupWebSocket = async () => {
+          try {
+            await connect();
+            const ok = subscribeToConversation(conversation.id, (event: ConversationEvent) => {
+              console.log("Received conversation event:", event);
+              refreshEvents();
+              if (shouldAutoScroll) scrollToBottom();
+            });
+            didSubscribe = ok;
+          } catch (error) {
+            console.error("Failed to setup WebSocket:", error);
+          }
+        };
+      
+        if (conversation.id) {
+          setupWebSocket();
+        }
+      
+        return () => {
+          if (didSubscribe) {
+            console.log("Unsubscribing from conversation", conversation.id);
+            unsubscribeFromConversation(conversation.id);
+          }
+        };
+      }, [conversation.id, connect, subscribeToConversation, unsubscribeFromConversation]);
+      
     useEffect(() => {
         if (shouldAutoScroll) scrollToBottom(false);
     }, [messages]);
@@ -211,6 +235,20 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
                         <p className="font-semibold text-gray-900 truncate">
                             {conversation.contact?.computedDisplayName || conversation.contactID}
                         </p>
+                        {/* WebSocket connection status */}
+                        <div className="flex items-center gap-1 text-xs">
+                            {isConnected() ? (
+                                <div className="flex items-center gap-1 text-green-600">
+                                    <Wifi className="size-3" />
+                                    <span>Live</span>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-1 text-gray-500">
+                                    <WifiOff className="size-3" />
+                                    <span>Offline</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
                 <AddContact
@@ -286,7 +324,7 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
 
             {/* Input Bar */}
             {showNotice ? (
-                <div className="flex items-center gap-1 text-xs text-gray-400 p-4 border-t bottom-0">
+                <div className="flex items-center justify-center text-center gap-1 text-xs text-gray-400 p-4 border-t bottom-0">
                     <p>
                         {!lastContactMessage
                             ? "This conversation has not started yet. The first message must be a template message."

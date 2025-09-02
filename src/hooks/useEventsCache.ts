@@ -11,7 +11,7 @@ export const useEventsCache = (conversationId: string) => {
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load events from cache or fetch from API
-  const loadEvents = useCallback(async (forceRefresh = false) => {
+  const loadEvents = useCallback(async (forceRefresh = true) => {
     if (!conversationId) return;
 
     // Check cache first (unless forcing refresh)
@@ -40,15 +40,6 @@ export const useEventsCache = (conversationId: string) => {
       eventsCache.setEvents(conversationId, sortedEvents);
       setEvents(sortedEvents);
       
-      // Track if we got new events to adjust polling frequency
-      if (sortedEvents.length > lastEventCountRef.current) {
-        // New messages received - poll more frequently
-        adjustPollingFrequency(500); // Poll every 500ms when active
-      } else {
-        // No new messages - gradually increase interval
-        adjustPollingFrequency(1000); // Back to 1 second
-      }
-      
       lastEventCountRef.current = sortedEvents.length;
     } catch (err) {
       console.error('Error fetching events:', err);
@@ -64,19 +55,6 @@ export const useEventsCache = (conversationId: string) => {
       eventsCache.setLoading(conversationId, false);
     }
   }, [conversationId]);
-
-  // Adjust polling frequency based on activity
-  const adjustPollingFrequency = useCallback((interval: number) => {
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-    }
-    
-    pollingIntervalRef.current = setInterval(() => {
-      if (!isLoading && conversationId) {
-        loadEvents();
-      }
-    }, interval);
-  }, [conversationId, isLoading, loadEvents]);
 
   // Add a new event to the cache and state
   const addEvent = useCallback((event: Event) => {
@@ -110,59 +88,6 @@ export const useEventsCache = (conversationId: string) => {
     loadEvents();
     lastEventCountRef.current = 0;
   }, [loadEvents]);
-
-  // Set up WebSocket listeners for real-time updates
-//   useEffect(() => {
-//     if (!conversationId) return;
-
-//     // Connect to socket if not connected
-//     if (!socket.connected) {
-//       socket.connect();
-//     }
-
-//     // Listen for new events in this conversation
-//     const handleNewEvent = (data: { conversationId: string; event: Event }) => {
-//       if (data.conversationId === conversationId) {
-//         addEvent(data.event);
-//       }
-//     };
-
-//     // Listen for event updates
-//     const handleEventUpdate = (data: { conversationId: string; eventId: string; event: Event }) => {
-//       if (data.conversationId === conversationId) {
-//         updateEvent(data.eventId, data.event);
-//       }
-//     };
-
-//     // Join conversation room for real-time updates
-//     socket.emit('join-conversation', { conversationId });
-
-//     // Set up event listeners
-//     socket.on('new-event', handleNewEvent);
-//     socket.on('event-update', handleEventUpdate);
-
-//     return () => {
-//       // Leave conversation room
-//       socket.emit('leave-conversation', { conversationId });
-      
-//       // Remove event listeners
-//       socket.off('new-event', handleNewEvent);
-//       socket.off('event-update', handleEventUpdate);
-//     };
-//   }, [conversationId, addEvent, updateEvent]);
-
-  // Set up intelligent polling for new messages (fallback)
-  useEffect(() => {
-    // Start with frequent polling (500ms) for active conversations
-    adjustPollingFrequency(500);
-
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-    };
-  }, [conversationId, adjustPollingFrequency]);
 
   // Cleanup on unmount
   useEffect(() => {

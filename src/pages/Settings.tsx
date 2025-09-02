@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogOut, Upload } from "lucide-react";
 import { useState } from "react";
+import WebSocketTest from "@/components/WebSocketTest";
 
 export default function SettingsPage() {
   const [notifications, setNotifications] = useState(true);
@@ -31,6 +32,7 @@ export default function SettingsPage() {
             <TabsTrigger value="account">Account</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
+            <TabsTrigger value="websocket">WebSocket</TabsTrigger>
           </TabsList>
         </div>
 
@@ -117,6 +119,21 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <Button variant="outline">Switch to Dark Mode</Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* WebSocket Tab */}
+          <TabsContent value="websocket">
+            <Card>
+              <CardHeader>
+                <CardTitle>WebSocket Connection</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Test the WebSocket connection and subscription functionality for real-time conversation updates.
+                </p>
+                <WebSocketTest />
               </CardContent>
             </Card>
           </TabsContent>

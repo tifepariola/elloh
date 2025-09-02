@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://core-api-155007035965.europe-west4.run.app/api/v1", // Base URL for all requests
+  baseURL: "https://inboxdev-core-api.stack.internal.elloh.studio/api/v1", // Base URL for all requests
   timeout: 10000, // 10 seconds timeout
   headers: {
     "Content-Type": "application/json",

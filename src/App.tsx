@@ -10,10 +10,12 @@ import SettingsPage from "./pages/Settings";
 import TemplatesPage from "./pages/Templates";
 import TemplateVersionsPage from "./pages/TemplateVersions";
 import { AuthProvider } from './store/authContext';
+import WebSocketManager from './components/WebSocketManager';
 
 function App() {
   return (
     <AuthProvider>
+        <WebSocketManager />
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={
