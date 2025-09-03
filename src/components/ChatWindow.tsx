@@ -5,7 +5,7 @@ import { formatDate } from "@/lib/utils";
 import { useAgents } from "@/providers/AgentProvider";
 import { ConversationEvent, useWebSocket } from "@/sockets/socket";
 import { Conversation, Event, Message } from "@/types";
-import { ChevronLeft, FileText, Image as ImageIcon, Loader2, Send, UserPlus, Wifi, WifiOff } from "lucide-react";
+import { ChevronLeft, FileText, Image as ImageIcon, Loader2, Search, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import AddContact from "./AddContact";
 import { StatusIcon } from "./StatusIcon";
@@ -27,14 +27,12 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const { agents } = useAgents();
-    
+
     // WebSocket integration
-    const { 
-        connect, 
-        subscribeToConversation, 
-        unsubscribeFromConversation, 
-        isConnected, 
-        // connectionState 
+    const {
+        connect,
+        subscribeToConversation,
+        unsubscribeFromConversation,
     } = useWebSocket();
 
     const [isAddContactOpen, setIsAddContactOpen] = useState(false);
@@ -47,6 +45,7 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
     const [templates, setTemplates] = useState<any[]>([]);
     const [templateSearch, setTemplateSearch] = useState("");
     const [loadingTemplates, setLoadingTemplates] = useState(false);
+    const subscriptionRef = useRef<string | null>(null);
 
     const getAgentName = (actorID: string) => {
         if (!agents || !Array.isArray(agents)) {
@@ -192,34 +191,54 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
 
     // WebSocket connection and subscription
     useEffect(() => {
-        let didSubscribe = false;
-      
-        const setupWebSocket = async () => {
-          try {
-            await connect();
-            const ok = subscribeToConversation(conversation.id, (event: ConversationEvent) => {
-              console.log("Received conversation event:", event);
-              refreshEvents();
-              if (shouldAutoScroll) scrollToBottom();
-            });
-            didSubscribe = ok;
-          } catch (error) {
-            console.error("Failed to setup WebSocket:", error);
-          }
-        };
-      
-        if (conversation.id) {
-          setupWebSocket();
+        if (!conversation.id) return;
+
+        let isSubscribed = true;
+        const prevConversationId = subscriptionRef.current;
+
+        // Unsubscribe from previous conversation if switching
+        if (prevConversationId && prevConversationId !== conversation.id) {
+            console.log("Unsubscribing from previous conversation:", prevConversationId);
+            unsubscribeFromConversation(prevConversationId);
+            subscriptionRef.current = null;
         }
-      
-        return () => {
-          if (didSubscribe) {
-            console.log("Unsubscribing from conversation", conversation.id);
-            unsubscribeFromConversation(conversation.id);
-          }
+
+        const setupWebSocket = async () => {
+            try {
+                await connect();
+                const ok = subscribeToConversation(conversation.id, (event: ConversationEvent) => {
+                    console.log("Received conversation event:", event);
+                    refreshEvents();
+                    if (shouldAutoScroll) scrollToBottom();
+                });
+
+                if (ok && isSubscribed) {
+                    subscriptionRef.current = conversation.id;
+                    console.log("Subscribed to conversation:", conversation.id);
+                }
+            } catch (error) {
+                console.error("Failed to setup WebSocket:", error);
+            }
         };
-      }, [conversation.id, connect, subscribeToConversation, unsubscribeFromConversation]);
-      
+
+        setupWebSocket();
+
+        // Cleanup when conversation changes or unmounts
+        return () => {
+            isSubscribed = false;
+            if (subscriptionRef.current === conversation.id) {
+                console.log("Cleaning up subscription for:", conversation.id);
+                unsubscribeFromConversation(conversation.id);
+                subscriptionRef.current = null;
+            }
+        };
+    }, [
+        conversation.id,
+        // connect,
+        subscribeToConversation,
+        unsubscribeFromConversation,
+        refreshEvents,
+    ]);
     useEffect(() => {
         if (shouldAutoScroll) scrollToBottom(false);
     }, [messages]);
@@ -227,35 +246,18 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
     return (
         <div className={`flex flex-col ${className}`}>
             {/* Header */}
-            <div className="flex items-center border-b py-3 px-4 gap-3 sticky top-0 z-10 h-18">
+            <div className="flex items-center border-b py-3 px-4 gap-1 sticky top-0 z-10 h-18">
                 <ChevronLeft className="size-6" onClick={onBack} />
-                <div className="flex items-center gap-3 flex-1">
-                    <UserAvatar name={conversation.contact?.computedDisplayName || conversation.contactID || ""} platform={conversation.platform} className="w-10 h-10" />
-                    <div className="flex-1">
-                        <p className="font-semibold text-gray-900 truncate">
-                            {conversation.contact?.computedDisplayName || conversation.contactID}
-                        </p>
-                        {/* WebSocket connection status */}
-                        <div className="flex items-center gap-1 text-xs">
-                            {isConnected() ? (
-                                <div className="flex items-center gap-1 text-green-600">
-                                    <Wifi className="size-3" />
-                                    <span>Live</span>
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-1 text-gray-500">
-                                    <WifiOff className="size-3" />
-                                    <span>Offline</span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
                 <AddContact
                     trigger={
-                        <Button variant="ghost" size="sm">
-                            <UserPlus className="size-4" />
-                        </Button>
+                        <div className="flex items-center gap-3 flex-1 cursor-pointer">
+                            <UserAvatar name={conversation.contact?.computedDisplayName || conversation.contactID || ""} platform={conversation.platform} className="w-10 h-10" />
+                            <div className="flex-1">
+                                <p className="font-semibold text-gray-900 truncate">
+                                    {conversation.contact?.computedDisplayName || conversation.contactID}
+                                </p>
+                            </div>
+                        </div>
                     }
                     isAddContactOpen={isAddContactOpen}
                     setIsAddContactOpen={setIsAddContactOpen}
@@ -272,6 +274,9 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
                         }
                     }
                 />
+                <Button variant="ghost" size="sm">
+                    <Search className="size-4" />
+                </Button>
             </div>
 
             {/* Messages */}
@@ -331,66 +336,66 @@ export default function ChatWindow({ onBack, conversation, className = "" }: Cha
                             : "More than 24 hours have passed since the customer last replied. You can only re-engage with a template message."}
                     </p>
                 </div>
-            ): (
-            <div className="p-4 border-t flex items-center gap-2 sticky bottom-0">
+            ) : (
+                <div className="p-4 border-t flex items-center gap-2 sticky bottom-0">
 
-                {/* Hidden File Input */}
-                <input
-                    id="file-upload"
-                    type="file"
-                    accept="image/*" // or change to "*/*" for all file types
-                    className="hidden"
-                    onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        handleFileSelect(file);
-                    }}
-                />
+                    {/* Hidden File Input */}
+                    <input
+                        id="file-upload"
+                        type="file"
+                        accept="image/*" // or change to "*/*" for all file types
+                        className="hidden"
+                        onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            handleFileSelect(file);
+                        }}
+                    />
 
-                {/* Message Template Button */}
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsTemplateDialogOpen(true)}
-                    className="rounded-full"
-                >
-                    <FileText className="size-5" /> {/* or a better icon for templates */}
-                </Button>
+                    {/* Message Template Button */}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setIsTemplateDialogOpen(true)}
+                        className="rounded-full"
+                    >
+                        <FileText className="size-5" /> {/* or a better icon for templates */}
+                    </Button>
 
-                {/* Upload Button */}
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => document.getElementById("file-upload")?.click()}
-                    className="rounded-full"
-                >
-                    <ImageIcon className="size-5" />
-                </Button>
+                    {/* Upload Button */}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => document.getElementById("file-upload")?.click()}
+                        className="rounded-full"
+                    >
+                        <ImageIcon className="size-5" />
+                    </Button>
 
-                {/* Text Input */}
-                <input
-                    type="text"
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            handleSendMessage();
-                        }
-                    }}
-                    placeholder="Type your message..."
-                    className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none"
-                />
+                    {/* Text Input */}
+                    <input
+                        type="text"
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendMessage();
+                            }
+                        }}
+                        placeholder="Type your message..."
+                        className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none"
+                    />
 
-                {/* Send Button */}
-                <Button
-                    onClick={handleSendMessage}
-                    disabled={!inputValue.trim()}
-                    className="rounded-full"
-                >
-                    <Send className="size-5" />
-                </Button>
-            </div>
+                    {/* Send Button */}
+                    <Button
+                        onClick={handleSendMessage}
+                        disabled={!inputValue.trim()}
+                        className="rounded-full"
+                    >
+                        <Send className="size-5" />
+                    </Button>
+                </div>
             )}
 
 

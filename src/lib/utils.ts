@@ -30,6 +30,21 @@ export function formatDate(date: string, format: string) {
         // More than a week ago
         return moment(date).format("MMM D, YYYY"); // e.g., Aug 15, 2025
       }
+    case "time_relative":
+      const timeNow = moment();
+      if (moment(date).isSame(timeNow, "day")) {
+        // Today
+        return moment(date).format("HH:mm");
+      } else if (moment(date).isSame(timeNow.clone().subtract(1, "day"), "day")) {
+        // Yesterday
+        return "Yesterday";
+      } else if (moment(date).isAfter(timeNow.clone().subtract(7, "days"))) {
+        // Within the last week
+        return moment(date).format("dddd"); // e.g., Friday
+      } else {
+        // More than a week ago
+        return moment(date).format("DD/MM/YYYY"); // e.g., 14/09/2025
+      }
     default:
       return moment(date).format("MMM D, YYYY, h:mm A");
   }
@@ -37,7 +52,7 @@ export function formatDate(date: string, format: string) {
 
 
 export const countryCodes = Object.entries(countryCodesList.customList("countryCode", "{countryCallingCode}"))
-    .map(([country, code]) => ({ country, code: code as string }));
+  .map(([country, code]) => ({ country, code: code as string }));
 
 /**
  * Splits a phone number into country code and local number
@@ -51,7 +66,7 @@ export function splitPhoneNumber(phoneNumber: string): { countryCode: string; lo
 
   // Remove any non-digit characters
   const cleanNumber = phoneNumber.replace(/\D/g, '');
-  
+
   if (cleanNumber.length < 7) {
     return null; // Too short to be a valid international number
   }
@@ -85,7 +100,7 @@ export function splitPhoneNumber(phoneNumber: string): { countryCode: string; lo
 export function formatPhoneNumber(phoneNumber: string): string {
   const split = splitPhoneNumber(phoneNumber);
   if (!split) return phoneNumber;
-  
+
   if (split.countryCode) {
     return `+${split.countryCode}${split.localNumber}`;
   }

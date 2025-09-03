@@ -1,14 +1,9 @@
 import api from "./axiosInstance";
 import { Contact } from "@/types";
 
-export const getContact = async (contactId: string): Promise<Contact | null> => {
-    try {
-        const response = await api.get(`/contacts/${contactId}`);
-        return response.data;
-    } catch (error) {
-        console.error("Error fetching contact:", error);
-        return null;
-    }
+export const getContact = async (contactId: string): Promise<Contact> => {
+    const response = await api.get(`/contacts/${contactId}`);
+    return response.data;
 };
 
 export const listContacts = async (): Promise<Contact[]> => {

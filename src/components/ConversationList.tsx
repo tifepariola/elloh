@@ -1,50 +1,22 @@
-import { getContact, listConversations } from "@/api";
 import { Button } from "@/components/ui/button";
-import { Conversation, Event } from "@/types";
-import { ImageIcon, MessageCircle, MessageCircleMore } from "lucide-react";
+import { useConversations } from "@/hooks/useConversations";
+import type { Conversation as ConversationType } from "@/types";
+import { MessageCircle, MessageCircleMore } from "lucide-react";
 import { useEffect, useState } from "react";
+import Conversation from "./Conversation";
 import { NewChatModal } from "./NewChatModal";
-import { StatusIcon } from "./StatusIcon";
 import UserAvatar from "./UserAvatar";
 
 type ConversationListProps = {
-  onSelect: (conv: Conversation) => void;
-  selectedConversation: Conversation | null;
+  onSelect: (conv: ConversationType) => void;
+  selectedConversation: ConversationType | null;
   className?: string;
 };
 
 export default function ConversationList({ onSelect, selectedConversation, className = "" }: ConversationListProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-
-  const getConversations = async (refresh = false) => {
-    try {
-      if (refresh) {
-        setIsLoading(true);
-      }
-      const data = await listConversations();
-      const conversationsData = data.conversations || [];
-
-      const conversationsWithContacts = await Promise.all(
-        conversationsData.map(async (conv: Conversation) => {
-          try {
-            const contactData = await getContact(conv.contactID);
-            return { ...conv, contact: contactData };
-          } catch {
-            return conv;
-          }
-        })
-      );
-
-      setConversations(conversationsWithContacts as Conversation[]);
-    } catch (error) {
-      console.error("Error fetching conversations:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { conversations, getConversations, isLoading } = useConversations();
 
   useEffect(() => {
     getConversations(true);
@@ -77,7 +49,7 @@ export default function ConversationList({ onSelect, selectedConversation, class
           </div>
         ) : (
           <div className="divide-y">
-            {conversations.map((conv: Conversation) => (
+            {conversations.map((conv: ConversationType) => (
               <div
                 key={conv.id}
                 role="button"
@@ -90,19 +62,7 @@ export default function ConversationList({ onSelect, selectedConversation, class
                 <UserAvatar name={conv.contact?.computedDisplayName || conv.contactID || ""} platform={conv.platform} className="w-12 h-12" />
 
                 {/* Conversation Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-gray-900 truncate">
-                      {conv.contact?.computedDisplayName || conv.contactID}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      {new Date(conv.updatedAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="text-sm text-gray-500 truncate">
-                    {_buildLastEvent(conv.lastEvent)}
-                  </div>
-                </div>
+                <Conversation conv={conv} />
               </div>
             ))}
           </div>
@@ -115,30 +75,4 @@ export default function ConversationList({ onSelect, selectedConversation, class
   );
 }
 
-function _buildLastEvent(event: Event | undefined) {
-  if (!event) return null;
-  switch (event.message?.body.type) {
-    case "text":
-      if (event.actorType === "agent") {
-        return <div className="flex flex-row items-center gap-1 text-gray-500">
-          <StatusIcon status={event.message?.status || "sending"} className="flex-shrink-0" />
-          <span className="truncate">{event.message?.body.text}</span>
-        </div>;
-      }
-      return event.message?.body.text;
-    case "image":
-      if (event.actorType === "agent") {
-        return <div className="flex flex-row items-center gap-1 text-gray-500">
-          <StatusIcon status={event.message?.status || "sending"} className="flex-shrink-0" />
-          <ImageIcon className="size-4 text-gray-500 flex-shrink-0" />
-          <span className="truncate">{event.message?.body.image.text || "Photo"}</span>
-        </div>;
-      }
-      return <div className="flex flex-row items-center gap-1 text-gray-500">
-        <ImageIcon className="size-4 text-gray-500 flex-shrink-0" />
-        <span className="truncate">{event.message?.body.image.text || "Photo"}</span>
-      </div>;
-    default:
-      return "Unknown";
-  }
-}
+

@@ -1,4 +1,5 @@
 import { useAuth } from '@/store/authContext';
+import { useCallback } from 'react';
 
 export interface WebSocketMessage {
   type: 'subscription';
@@ -150,32 +151,25 @@ class WebSocketService {
       console.log('Unknown message type:', data.type);
     }
   }
-
   subscribeToConversation(conversationId: string, handler: (event: ConversationEvent) => void): boolean {
-    // Check if already subscribed BEFORE adding
-    if (this.subscriptions.has(conversationId)) {
-      console.log(`Already subscribed to conversation: ${conversationId}, updating handler`);
-      this.eventHandlers.set(conversationId, handler);
-      return true;
-    }
+    this.eventHandlers.set(conversationId, handler);
   
     const message: WebSocketMessage = {
       type: 'subscription',
       action: 'subscribe',
       topic: 'conversationEvent',
-      resourceID: conversationId
+      resourceID: conversationId,
     };
   
     try {
       if (this.ws?.readyState === WebSocket.OPEN) {
         this.ws.send(JSON.stringify(message));
+        console.log(`Subscribed to conversation: ${conversationId}`);
+      } else {
+        console.log(`Queued subscription for: ${conversationId}`);
       }
   
       this.subscriptions.add(conversationId);
-      this.eventHandlers.set(conversationId, handler);
-  
-      console.log(`Subscribed to conversation: ${conversationId}`);
-      console.log(`Active subscriptions: ${Array.from(this.subscriptions).join(', ')}`);
       return true;
     } catch (error) {
       console.error('Failed to subscribe to conversation:', error);
@@ -266,13 +260,14 @@ export const useWebSocket = () => {
     return webSocketService.connect(token);
   };
 
-  const subscribeToConversation = (conversationId: string, handler: (event: ConversationEvent) => void) => {
-    return webSocketService.subscribeToConversation(conversationId, handler);
-  };
+  const subscribeToConversation = useCallback((conversationId: string, handler: (event: ConversationEvent) => void) => {
 
-  const unsubscribeFromConversation = (conversationId: string) => {
+    return webSocketService.subscribeToConversation(conversationId, handler);
+  }, [webSocketService]);
+
+  const unsubscribeFromConversation = useCallback((conversationId: string) => {
     return webSocketService.unsubscribeFromConversation(conversationId);
-  };
+  }, [webSocketService]);
 
   const disconnect = () => {
     webSocketService.disconnect();
